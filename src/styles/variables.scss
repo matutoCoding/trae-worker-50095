@@ -1,0 +1,114 @@
+@use './theme.scss' as *;
+
+$page-padding: 32rpx;
+$page-padding-sm: 24rpx;
+$page-padding-lg: 48rpx;
+$max-content-width: 686rpx;
+
+$spacing-xs: 8rpx;
+$spacing-sm: 16rpx;
+$spacing-md: 24rpx;
+$spacing-lg: 32rpx;
+$spacing-xl: 48rpx;
+$spacing-xxl: 64rpx;
+
+$radius-xs: 4rpx;
+$radius-sm: 8rpx;
+$radius-md: 16rpx;
+$radius-lg: 24rpx;
+$radius-button: 48rpx;
+$radius-round: 999rpx;
+
+$shadow-card: 0 2rpx 12rpx rgba(30, 136, 229, 0.1);
+$shadow-card-hover: 0 4rpx 20rpx rgba(30, 136, 229, 0.15);
+$shadow-float: 0 4rpx 16rpx rgba(0, 0, 0, 0.1);
+$shadow-popup: 0 8rpx 32rpx rgba(0, 0, 0, 0.15);
+$shadow-button: 0 4rpx 12rpx rgba(30, 136, 229, 0.25);
+
+$font-size-xs: 22rpx;
+$font-size-sm: 24rpx;
+$font-size-md: 28rpx;
+$font-size-lg: 30rpx;
+$font-size-xl: 34rpx;
+$font-size-xxl: 40rpx;
+
+$font-weight-normal: 400;
+$font-weight-medium: 500;
+$font-weight-semibold: 600;
+$font-weight-bold: 700;
+
+$button-height-sm: 64rpx;
+$button-height-md: 80rpx;
+$button-height-lg: 96rpx;
+
+$transition-base: 0.2s ease;
+$transition-fast: 0.1s ease;
+$transition-slow: 0.3s ease;
+
+$header-height: 88rpx;
+$tabbar-height: 100rpx;
+$safe-area-bottom: env(safe-area-inset-bottom);
+
+@mixin text-ellipsis {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+@mixin text-ellipsis-multi($lines: 2) {
+  display: -webkit-box;
+  -webkit-line-clamp: $lines;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+@mixin button-reset {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  line-height: normal;
+  cursor: pointer;
+  outline: none;
+  &::after {
+    border: none;
+  }
+}
+
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+@mixin card {
+  background: $color-bg-card;
+  border-radius: $radius-md;
+  box-shadow: $shadow-card;
+  padding: $spacing-lg;
+}
+
+@mixin scroll-x-container {
+  white-space: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@mixin scroll-x-item($width: auto) {
+  display: inline-block;
+  width: $width;
+  white-space: normal;
+  vertical-align: top;
+}

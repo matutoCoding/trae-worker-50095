@@ -1,0 +1,77 @@
+@use './styles/variables.scss' as *;
+
+page {
+  background: $color-bg-page-gradient;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: $font-size-md;
+  color: $color-text-primary;
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+view, text {
+  box-sizing: border-box;
+}
+
+.page-container {
+  padding: 0 $page-padding;
+  padding-bottom: calc(#{$tabbar-height} + #{$safe-area-bottom} + #{$spacing-lg});
+  min-height: 100vh;
+}
+
+.page-header {
+  padding: $spacing-lg 0;
+  padding-top: calc(#{$spacing-lg} + #{$header-height});
+
+  .page-title {
+    font-size: $font-size-xxl;
+    font-weight: $font-weight-semibold;
+    color: $color-text-primary;
+    margin-bottom: $spacing-xs;
+  }
+
+  .page-subtitle {
+    font-size: $font-size-sm;
+    color: $color-text-secondary;
+  }
+}
+
+.section {
+  margin-bottom: $spacing-lg;
+
+  .section-title {
+    font-size: $font-size-lg;
+    font-weight: $font-weight-semibold;
+    color: $color-text-primary;
+    margin-bottom: $spacing-md;
+  }
+}
+
+.card {
+  @include card;
+  margin-bottom: $spacing-md;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+}
+
+.row-between {
+  @include flex-between;
+}
+
+.col {
+  flex: 1;
+}
+
+.mt-sm { margin-top: $spacing-sm; }
+.mt-md { margin-top: $spacing-md; }
+.mt-lg { margin-top: $spacing-lg; }
+.mb-sm { margin-bottom: $spacing-sm; }
+.mb-md { margin-bottom: $spacing-md; }
+.mb-lg { margin-bottom: $spacing-lg; }
+.mr-sm { margin-right: $spacing-sm; }
+.mr-md { margin-right: $spacing-md; }
+.ml-sm { margin-left: $spacing-sm; }
+.ml-md { margin-left: $spacing-md; }

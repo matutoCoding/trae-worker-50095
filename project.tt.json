@@ -1,0 +1,10 @@
+{
+  "setting": {
+    "urlCheck": false,
+    "es6": true,
+    "postcss": true,
+    "minified": true
+  },
+  "appid": "tt1234567890",
+  "projectname": "ice-climbing-safety"
+}

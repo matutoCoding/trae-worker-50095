@@ -1,0 +1,71 @@
+@use '@/styles/variables.scss' as *;
+
+.dataCard {
+  background: $color-bg-card;
+  border-radius: $radius-md;
+  padding: $spacing-md;
+  box-shadow: $shadow-card;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+
+  &.sizeSmall {
+    padding: $spacing-sm $spacing-md;
+
+    .label { font-size: $font-size-xs; }
+    .value { font-size: $font-size-lg; }
+    .unit { font-size: $font-size-xs; }
+  }
+
+  &.sizeMedium {
+    .label { font-size: $font-size-sm; }
+    .value { font-size: $font-size-xxl; }
+    .unit { font-size: $font-size-sm; }
+  }
+
+  &.sizeLarge {
+    padding: $spacing-lg;
+
+    .label { font-size: $font-size-md; }
+    .value { font-size: 48rpx; }
+    .unit { font-size: $font-size-md; }
+  }
+
+  &.colorDefault {
+    .value { color: $color-text-primary; }
+  }
+  &.colorPrimary {
+    .value { color: $color-primary; }
+  }
+  &.colorSuccess {
+    .value { color: $color-success; }
+  }
+  &.colorWarning {
+    .value { color: $color-warning; }
+  }
+  &.colorDanger {
+    .value { color: $color-danger; }
+  }
+}
+
+.label {
+  color: $color-text-secondary;
+  margin-bottom: $spacing-xs;
+  font-weight: $font-weight-normal;
+}
+
+.valueRow {
+  display: flex;
+  align-items: baseline;
+}
+
+.value {
+  font-weight: $font-weight-semibold;
+  line-height: 1.2;
+}
+
+.unit {
+  color: $color-text-tertiary;
+  margin-left: $spacing-xs;
+  font-weight: $font-weight-normal;
+}

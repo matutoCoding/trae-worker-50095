@@ -1,0 +1,371 @@
+@use '@/styles/variables.scss' as *;
+
+.protectionPage {
+  min-height: 100vh;
+}
+
+.paramsCard {
+  .weightRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: $spacing-sm;
+
+    .label {
+      font-size: $font-size-sm;
+      color: $color-text-secondary;
+    }
+
+    .value {
+      font-size: $font-size-xl;
+      font-weight: $font-weight-semibold;
+      color: $color-primary;
+
+      .unit {
+        font-size: $font-size-sm;
+        color: $color-text-secondary;
+        font-weight: $font-weight-normal;
+        margin-left: $spacing-xs;
+      }
+    }
+  }
+
+  .weightSlider {
+    margin-top: $spacing-sm;
+  }
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $spacing-md;
+  margin-bottom: $spacing-lg;
+}
+
+.timeline {
+  position: relative;
+  padding-left: $spacing-lg;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 14rpx;
+    top: 0;
+    bottom: 0;
+    width: 4rpx;
+    background: linear-gradient(180deg, $color-primary 0%, $color-success 100%);
+    border-radius: 2rpx;
+  }
+
+  .pointItem {
+    position: relative;
+    background: $color-bg-card;
+    border-radius: $radius-md;
+    box-shadow: $shadow-card;
+    padding: $spacing-md;
+    margin-bottom: $spacing-md;
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: -46rpx;
+      top: $spacing-lg;
+      width: 24rpx;
+      height: 24rpx;
+      border-radius: $radius-round;
+      background: $color-bg-card;
+      border: 4rpx solid $color-primary;
+    }
+
+    .pointHeader {
+      @include flex-between;
+      margin-bottom: $spacing-sm;
+
+      .pointOrder {
+        display: flex;
+        align-items: center;
+
+        .orderBadge {
+          width: 48rpx;
+          height: 48rpx;
+          background: $color-primary-gradient;
+          color: $color-text-light;
+          border-radius: $radius-round;
+          font-size: $font-size-sm;
+          font-weight: $font-weight-bold;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-right: $spacing-sm;
+        }
+
+        .pointHeight {
+          font-size: $font-size-md;
+          font-weight: $font-weight-semibold;
+          color: $color-text-primary;
+        }
+      }
+
+      .fallFactor {
+        padding: $spacing-xs $spacing-sm;
+        border-radius: $radius-sm;
+        font-size: $font-size-xs;
+        font-weight: $font-weight-semibold;
+
+        &.safe {
+          background: rgba(38, 166, 154, 0.15);
+          color: $color-success;
+        }
+        &.warn {
+          background: rgba(255, 152, 0, 0.15);
+          color: $color-warning;
+        }
+        &.danger {
+          background: rgba(244, 67, 54, 0.15);
+          color: $color-danger;
+        }
+      }
+    }
+
+    .pointDetails {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: $spacing-sm;
+      margin-top: $spacing-sm;
+
+      .detail {
+        text-align: center;
+
+        .detailLabel {
+          display: block;
+          font-size: $font-size-xs;
+          color: $color-text-tertiary;
+          margin-bottom: 4rpx;
+        }
+
+        .detailValue {
+          font-size: $font-size-sm;
+          font-weight: $font-weight-semibold;
+          color: $color-text-primary;
+
+          .unit {
+            font-size: $font-size-xs;
+            color: $color-text-secondary;
+            font-weight: $font-weight-normal;
+          }
+        }
+      }
+    }
+  }
+}
+
+.riskSection {
+  .riskItem {
+    background: $color-bg-card;
+    border-radius: $radius-md;
+    box-shadow: $shadow-card;
+    padding: $spacing-md $spacing-lg;
+    margin-bottom: $spacing-sm;
+    border-left: 8rpx solid;
+
+    &.riskLow { border-left-color: $color-success; }
+    &.riskMedium { border-left-color: $color-warning; }
+    &.riskHigh { border-left-color: $color-danger; }
+
+    .riskHeader {
+      @include flex-between;
+      margin-bottom: $spacing-xs;
+
+      .riskPos {
+        font-size: $font-size-md;
+        font-weight: $font-weight-semibold;
+        color: $color-text-primary;
+      }
+
+      .riskLevel {
+        padding: $spacing-xs $spacing-sm;
+        border-radius: $radius-xs;
+        font-size: $font-size-xs;
+        font-weight: $font-weight-medium;
+
+        &.low { background: rgba(38, 166, 154, 0.15); color: $color-success; }
+        &.medium { background: rgba(255, 152, 0, 0.15); color: $color-warning; }
+        &.high { background: rgba(244, 67, 54, 0.15); color: $color-danger; }
+      }
+    }
+
+    .riskDetails {
+      font-size: $font-size-sm;
+      color: $color-text-secondary;
+      line-height: 1.6;
+
+      .tag {
+        display: inline-block;
+        padding: 4rpx $spacing-xs;
+        margin-right: $spacing-xs;
+        margin-top: $spacing-xs;
+        background: $color-bg-secondary;
+        border-radius: $radius-xs;
+        font-size: $font-size-xs;
+        color: $color-text-secondary;
+      }
+
+      .noStop {
+        background: rgba(244, 67, 54, 0.15);
+        color: $color-danger;
+        font-weight: $font-weight-medium;
+      }
+    }
+  }
+}
+
+.meltWindow {
+  background: linear-gradient(135deg, rgba(255, 152, 0, 0.1) 0%, rgba(244, 67, 54, 0.1) 100%);
+  border-radius: $radius-md;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-md;
+
+  .windowHeader {
+    @include flex-between;
+    margin-bottom: $spacing-md;
+
+    .windowTitle {
+      font-size: $font-size-md;
+      font-weight: $font-weight-semibold;
+      color: $color-text-primary;
+    }
+
+    .windowIcon {
+      font-size: 40rpx;
+    }
+  }
+
+  .timeBar {
+    position: relative;
+    height: 16rpx;
+    background: $color-bg-secondary;
+    border-radius: 8rpx;
+    overflow: hidden;
+    margin: $spacing-md 0;
+
+    .safeZone {
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      background: linear-gradient(90deg, $color-success 0%, $color-success-light 100%);
+    }
+
+    .dangerZone {
+      position: absolute;
+      top: 0;
+      height: 100%;
+      background: linear-gradient(90deg, $color-warning-light 0%, $color-danger 100%);
+    }
+
+    .nowMarker {
+      position: absolute;
+      top: -8rpx;
+      width: 8rpx;
+      height: 32rpx;
+      background: $color-primary;
+      border-radius: 4rpx;
+      z-index: 2;
+    }
+  }
+
+  .timeLabels {
+    @include flex-between;
+    font-size: $font-size-xs;
+    color: $color-text-secondary;
+  }
+
+  .windowStats {
+    display: flex;
+    justify-content: space-around;
+    margin-top: $spacing-md;
+
+    .stat {
+      text-align: center;
+
+      .statValue {
+        font-size: $font-size-lg;
+        font-weight: $font-weight-semibold;
+        color: $color-text-primary;
+        display: block;
+      }
+
+      .statLabel {
+        font-size: $font-size-xs;
+        color: $color-text-tertiary;
+      }
+    }
+  }
+}
+
+.generateButton {
+  @include button-reset;
+  width: 100%;
+  height: $button-height-lg;
+  background: $color-primary-gradient;
+  color: $color-text-light;
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  border-radius: $radius-button;
+  margin-top: $spacing-md;
+  transition: all $transition-base;
+  box-shadow: $shadow-button;
+
+  &:active {
+    opacity: 0.9;
+    transform: scale(0.98);
+  }
+}
+
+.saveButton {
+  @include button-reset;
+  width: 100%;
+  height: $button-height-lg;
+  background: $color-bg-card;
+  color: $color-primary;
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  border-radius: $radius-button;
+  margin-top: $spacing-md;
+  border: 2rpx solid $color-primary;
+  transition: all $transition-base;
+
+  &:active {
+    opacity: 0.9;
+    transform: scale(0.98);
+  }
+}
+
+.noWaterfall {
+  @include flex-center;
+  flex-direction: column;
+  padding: $spacing-xxl 0;
+
+  .icon {
+    font-size: 96rpx;
+    color: $color-border;
+    margin-bottom: $spacing-md;
+  }
+
+  .text {
+    font-size: $font-size-md;
+    color: $color-text-tertiary;
+    text-align: center;
+    line-height: 1.6;
+  }
+}
+
+.sectionHint {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  line-height: 1.6;
+  background: rgba(30, 136, 229, 0.06);
+  padding: $spacing-md;
+  border-radius: $radius-sm;
+  margin-bottom: $spacing-md;
+}

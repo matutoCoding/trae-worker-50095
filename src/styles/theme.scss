@@ -1,0 +1,45 @@
+$color-primary: #1E88E5;
+$color-primary-light: #42A5F5;
+$color-primary-dark: #1565C0;
+$color-primary-gradient: linear-gradient(135deg, #1E88E5 0%, #42A5F5 100%);
+
+$color-secondary: #00ACC1;
+$color-secondary-light: #4DD0E1;
+$color-success: #26A69A;
+$color-success-light: #4DB6AC;
+
+$color-warning: #FF9800;
+$color-warning-light: #FFB74D;
+$color-danger: #F44336;
+$color-danger-light: #EF5350;
+$color-critical: #D32F2F;
+
+$color-level-a: #4CAF50;
+$color-level-b: #8BC34A;
+$color-level-c: #FFC107;
+$color-level-d: #FF9800;
+$color-level-e: #F44336;
+
+$color-bg-page: #F5F9FC;
+$color-bg-page-gradient: linear-gradient(180deg, #E3F2FD 0%, #F5F9FC 100%);
+$color-bg-card: #FFFFFF;
+$color-bg-secondary: #ECEFF1;
+
+$color-text-primary: #1A237E;
+$color-text-secondary: #546E7A;
+$color-text-tertiary: #90A4AE;
+$color-text-light: #FFFFFF;
+$color-text-disabled: #B0BEC5;
+
+$color-border: #CFD8DC;
+$color-border-light: #ECEFF1;
+$color-border-dark: #B0BEC5;
+
+$color-ice-transparent: #E3F2FD;
+$color-ice-blue: #90CAF9;
+$color-ice-white: #FAFAFA;
+$color-ice-milky: #ECEFF1;
+$color-ice-brown: #A1887F;
+
+$color-overlay: rgba(0, 0, 0, 0.5);
+$color-overlay-light: rgba(255, 255, 255, 0.8);

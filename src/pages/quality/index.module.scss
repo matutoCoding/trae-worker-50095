@@ -1,0 +1,283 @@
+@use '@/styles/variables.scss' as *;
+
+.qualityPage {
+  min-height: 100vh;
+}
+
+.levelOverview {
+  background: $color-bg-card;
+  border-radius: $radius-md;
+  box-shadow: $shadow-card;
+  padding: $spacing-xl;
+  text-align: center;
+  margin-bottom: $spacing-lg;
+
+  .bigLevel {
+    font-size: 120rpx;
+    font-weight: $font-weight-bold;
+    line-height: 1;
+    margin-bottom: $spacing-md;
+  }
+
+  .levelLabel {
+    font-size: $font-size-lg;
+    font-weight: $font-weight-semibold;
+    margin-bottom: $spacing-sm;
+  }
+
+  .levelDescription {
+    font-size: $font-size-sm;
+    color: $color-text-secondary;
+    line-height: 1.6;
+    padding: 0 $spacing-md;
+  }
+}
+
+.colorGrid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: $spacing-sm;
+  margin-top: $spacing-md;
+
+  .colorItem {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: $spacing-sm;
+    border-radius: $radius-sm;
+    border: 4rpx solid transparent;
+    background: $color-bg-secondary;
+    transition: all $transition-base;
+
+    &.active {
+      border-color: $color-primary;
+      background: rgba(30, 136, 229, 0.08);
+    }
+
+    .colorBlock {
+      width: 56rpx;
+      height: 56rpx;
+      border-radius: $radius-sm;
+      margin-bottom: $spacing-xs;
+      border: 2rpx solid $color-border;
+    }
+
+    .colorName {
+      font-size: $font-size-xs;
+      color: $color-text-primary;
+      font-weight: $font-weight-medium;
+      white-space: nowrap;
+    }
+  }
+}
+
+.hollowGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $spacing-sm;
+  margin-top: $spacing-md;
+
+  .hollowItem {
+    @include button-reset;
+    background: $color-bg-secondary;
+    border-radius: $radius-sm;
+    padding: $spacing-md;
+    text-align: left;
+    border: 4rpx solid transparent;
+    transition: all $transition-base;
+
+    &.active {
+      border-color: $color-primary;
+      background: rgba(30, 136, 229, 0.08);
+    }
+
+    .hollowLabel {
+      font-size: $font-size-md;
+      font-weight: $font-weight-semibold;
+      color: $color-text-primary;
+      display: block;
+      margin-bottom: $spacing-xs;
+    }
+
+    .hollowDesc {
+      font-size: $font-size-xs;
+      color: $color-text-secondary;
+      line-height: 1.4;
+    }
+  }
+}
+
+.thicknessInput {
+  display: flex;
+  align-items: center;
+  margin-top: $spacing-md;
+
+  .input {
+    flex: 1;
+    height: $button-height-md;
+    background: $color-bg-secondary;
+    border-radius: $radius-sm;
+    padding: 0 $spacing-md;
+    font-size: $font-size-xl;
+    font-weight: $font-weight-semibold;
+    color: $color-primary;
+    border: none;
+    outline: none;
+  }
+
+  .unit {
+    margin-left: $spacing-md;
+    font-size: $font-size-md;
+    color: $color-text-secondary;
+  }
+}
+
+.thicknessHints {
+  display: flex;
+  justify-content: space-between;
+  margin-top: $spacing-sm;
+
+  .hint {
+    font-size: $font-size-xs;
+    color: $color-text-tertiary;
+  }
+}
+
+.bubbleSlider {
+  margin-top: $spacing-md;
+}
+
+.bubbleLabels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: $spacing-xs;
+
+  .bubbleLabel {
+    font-size: $font-size-xs;
+    color: $color-text-tertiary;
+  }
+}
+
+.dangerZones {
+  .zoneType {
+    margin-bottom: $spacing-lg;
+
+    .zoneHeader {
+      @include flex-between;
+      margin-bottom: $spacing-sm;
+
+      .zoneTitle {
+        font-size: $font-size-md;
+        font-weight: $font-weight-semibold;
+        color: $color-text-primary;
+      }
+
+      .addButton {
+        @include button-reset;
+        font-size: $font-size-sm;
+        color: $color-primary;
+        padding: $spacing-xs $spacing-sm;
+      }
+    }
+
+    .zoneList {
+      .zoneItem {
+        background: $color-bg-secondary;
+        border-radius: $radius-sm;
+        padding: $spacing-md;
+        margin-bottom: $spacing-sm;
+
+        .zoneInfo {
+          @include flex-between;
+          margin-bottom: $spacing-xs;
+        }
+
+        .zoneLabel {
+          font-size: $font-size-sm;
+          font-weight: $font-weight-medium;
+          color: $color-text-primary;
+        }
+
+        .severityBadge {
+          padding: $spacing-xs $spacing-sm;
+          border-radius: $radius-xs;
+          font-size: $font-size-xs;
+          font-weight: $font-weight-medium;
+
+          &.low {
+            background: rgba(38, 166, 154, 0.15);
+            color: $color-success;
+          }
+          &.medium {
+            background: rgba(255, 152, 0, 0.15);
+            color: $color-warning;
+          }
+          &.high {
+            background: rgba(244, 67, 54, 0.15);
+            color: $color-danger;
+          }
+        }
+
+        .zonePosition {
+          font-size: $font-size-xs;
+          color: $color-text-secondary;
+        }
+      }
+
+      .emptyHint {
+        background: $color-bg-secondary;
+        border-radius: $radius-sm;
+        padding: $spacing-lg;
+        text-align: center;
+        font-size: $font-size-sm;
+        color: $color-text-tertiary;
+      }
+    }
+  }
+}
+
+.colorDesc {
+  margin-top: $spacing-sm;
+  padding: $spacing-sm $spacing-md;
+  background: $color-bg-secondary;
+  border-radius: $radius-sm;
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+  line-height: 1.5;
+}
+
+.saveButton {
+  @include button-reset;
+  width: 100%;
+  height: $button-height-lg;
+  background: $color-primary-gradient;
+  color: $color-text-light;
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  border-radius: $radius-button;
+  margin-top: $spacing-xl;
+  transition: all $transition-base;
+  box-shadow: $shadow-button;
+
+  &:active {
+    opacity: 0.9;
+    transform: scale(0.98);
+  }
+}
+
+.noWaterfall {
+  @include flex-center;
+  flex-direction: column;
+  padding: $spacing-xxl 0;
+
+  .icon {
+    font-size: 96rpx;
+    color: $color-border;
+    margin-bottom: $spacing-md;
+  }
+
+  .text {
+    font-size: $font-size-md;
+    color: $color-text-tertiary;
+  }
+}

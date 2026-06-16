@@ -1,0 +1,68 @@
+@use '@/styles/variables.scss' as *;
+
+.warningAlert {
+  border-radius: $radius-md;
+  padding: $spacing-md $spacing-lg;
+  border-left: 8rpx solid;
+
+  &.typeWarning {
+    background: rgba(255, 152, 0, 0.1);
+    border-color: $color-warning;
+    .dot { background: $color-warning; }
+    .title { color: $color-warning; }
+  }
+
+  &.typeDanger {
+    background: rgba(244, 67, 54, 0.1);
+    border-color: $color-danger;
+    .dot { background: $color-danger; }
+    .title { color: $color-danger; }
+  }
+
+  &.typeCritical {
+    background: rgba(211, 47, 47, 0.15);
+    border-color: $color-critical;
+    .dot { background: $color-critical; }
+    .title { color: $color-critical; }
+  }
+
+  &.typeInfo {
+    background: rgba(30, 136, 229, 0.1);
+    border-color: $color-primary;
+    .dot { background: $color-primary; }
+    .title { color: $color-primary; }
+  }
+
+  &.typeSuccess {
+    background: rgba(38, 166, 154, 0.1);
+    border-color: $color-success;
+    .dot { background: $color-success; }
+    .title { color: $color-success; }
+  }
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  margin-bottom: $spacing-xs;
+}
+
+.dot {
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: $radius-round;
+  margin-right: $spacing-sm;
+}
+
+.title {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  line-height: 1.4;
+}
+
+.message {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  line-height: 1.5;
+  margin-left: 32rpx;
+}
