@@ -4,6 +4,35 @@
   min-height: 100vh;
 }
 
+.waterfallFilterBar {
+  @include scroll-x-container;
+  margin: 0 -$page-padding $spacing-sm;
+  padding: 0 $page-padding;
+
+  .wfFilterItem {
+    @include scroll-x-item();
+    @include button-reset;
+    display: inline-flex;
+    align-items: center;
+    padding: $spacing-sm $spacing-md;
+    background: transparent;
+    border: 2rpx solid $color-border-light;
+    border-radius: $radius-button;
+    margin-right: $spacing-sm;
+    font-size: $font-size-sm;
+    color: $color-text-secondary;
+    white-space: nowrap;
+    transition: all $transition-base;
+
+    &.activeWf {
+      background: rgba(30, 136, 229, 0.1);
+      color: $color-primary;
+      border-color: rgba(30, 136, 229, 0.5);
+      font-weight: $font-weight-semibold;
+    }
+  }
+}
+
 .filterBar {
   @include scroll-x-container;
   margin: 0 -$page-padding $spacing-md;
@@ -41,6 +70,12 @@
     margin-bottom: $spacing-md;
     cursor: pointer;
     transition: all $transition-base;
+    border: 2rpx solid transparent;
+
+    &.currentCard {
+      border-color: rgba(30, 136, 229, 0.5);
+      box-shadow: $shadow-button, 0 0 0 4rpx rgba(30, 136, 229, 0.1);
+    }
 
     &:active {
       transform: scale(0.99);
@@ -84,6 +119,18 @@
         border-radius: $radius-sm;
         color: $color-text-light;
         font-size: $font-size-xs;
+      }
+
+      .currentBadge {
+        position: absolute;
+        bottom: $spacing-md;
+        left: $spacing-md;
+        padding: $spacing-xs $spacing-sm;
+        background: $color-primary-gradient;
+        border-radius: $radius-sm;
+        color: $color-text-light;
+        font-size: $font-size-xs;
+        font-weight: $font-weight-semibold;
       }
     }
 
@@ -164,7 +211,7 @@
 
   .modalContent {
     width: 100%;
-    max-height: 85vh;
+    max-height: 88vh;
     background: $color-bg-page;
     border-radius: $radius-lg $radius-lg 0 0;
     overflow: hidden;
@@ -181,6 +228,12 @@
         font-size: $font-size-xl;
         font-weight: $font-weight-semibold;
         color: $color-text-primary;
+      }
+
+      .modalSubtitle {
+        font-size: $font-size-sm;
+        color: $color-text-secondary;
+        margin-top: $spacing-xs;
       }
 
       .closeBtn {
@@ -211,10 +264,16 @@
     border-radius: $radius-md;
     overflow: hidden;
     background: $color-bg-secondary;
+    @include flex-center;
 
     .photo {
       width: 100%;
       height: 100%;
+    }
+
+    .noPhotoHint {
+      font-size: $font-size-sm;
+      color: $color-text-tertiary;
     }
   }
 }
@@ -237,6 +296,15 @@
     grid-template-columns: repeat(2, 1fr);
     gap: $spacing-md;
   }
+
+  .notesContent {
+    font-size: $font-size-sm;
+    color: $color-text-secondary;
+    line-height: 1.8;
+    background: $color-bg-secondary;
+    padding: $spacing-md;
+    border-radius: $radius-sm;
+  }
 }
 
 .statsRow {
@@ -244,6 +312,78 @@
   grid-template-columns: repeat(4, 1fr);
   gap: $spacing-sm;
   margin-bottom: $spacing-md;
+}
+
+.summaryCard {
+  background: $color-bg-secondary;
+  border-radius: $radius-sm;
+  padding: $spacing-md;
+  margin-bottom: $spacing-md;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+
+  .summaryHeader {
+    font-size: $font-size-md;
+    font-weight: $font-weight-semibold;
+    color: $color-text-primary;
+    margin-bottom: $spacing-md;
+    display: flex;
+    align-items: center;
+
+    .summaryIcon {
+      font-size: $font-size-lg;
+      margin-right: $spacing-sm;
+    }
+  }
+
+  .summaryGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: $spacing-md;
+    margin-bottom: $spacing-md;
+
+    .summaryItem {
+      .summaryLabel {
+        font-size: $font-size-xs;
+        color: $color-text-tertiary;
+        display: block;
+        margin-bottom: $spacing-xs;
+      }
+
+      .summaryValue {
+        display: flex;
+        align-items: center;
+        gap: $spacing-xs;
+
+        .summarySubText {
+          font-size: $font-size-xs;
+          color: $color-text-secondary;
+        }
+      }
+
+      .summaryValueText {
+        font-size: $font-size-md;
+        font-weight: $font-weight-semibold;
+        color: $color-text-primary;
+      }
+    }
+  }
+
+  .summaryFooter {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: $spacing-xs;
+    padding-top: $spacing-sm;
+    border-top: 1rpx solid $color-border-light;
+
+    .summaryMeta {
+      font-size: $font-size-xs;
+      color: $color-text-tertiary;
+    }
+  }
 }
 
 .riskList {
@@ -300,5 +440,14 @@
     font-size: $font-size-md;
     color: $color-text-tertiary;
     text-align: center;
+  }
+
+  .emptyHint {
+    font-size: $font-size-sm;
+    color: $color-text-secondary;
+    text-align: center;
+    margin-top: $spacing-sm;
+    line-height: 1.6;
+    opacity: 0.8;
   }
 }

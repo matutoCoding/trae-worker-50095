@@ -4,8 +4,9 @@ import Taro from '@tarojs/taro'
 import classnames from 'classnames'
 import { useAppContext } from '@/store/AppContext'
 import SectionHeader from '@/components/SectionHeader'
-import { checkCollapseRisk, getIceQualityColor } from '@/utils/calculations'
-import type { TemperatureAlert } from '@/types'
+import LevelBadge from '@/components/LevelBadge'
+import { checkCollapseRisk, getIceQualityColor, calculateMeltingWindow } from '@/utils/calculations'
+import type { TemperatureAlert, IceQualityLevel } from '@/types'
 import styles from './index.module.scss'
 
 const categories = [
@@ -14,28 +15,32 @@ const categories = [
     name: '极寒稳定区',
     temperatureRange: [-20, -10] as [number, number],
     qualityLevels: ['A', 'B'] as const,
-    description: '气温极低，冰质坚硬稳定，适合各种难度线路攀爬'
+    description: '气温极低，冰质坚硬稳定，适合各种难度线路攀爬',
+    icon: '❄️'
   },
   {
     id: 'cat-2',
     name: '常规作业区',
     temperatureRange: [-10, 0] as [number, number],
     qualityLevels: ['B', 'C'] as const,
-    description: '温度适中，冰质稳定，需注意午后升温影响'
+    description: '温度适中，冰质稳定，需注意午后升温影响',
+    icon: '🏔️'
   },
   {
     id: 'cat-3',
     name: '清晨限定区',
     temperatureRange: [0, 3] as [number, number],
     qualityLevels: ['C'] as const,
-    description: '接近冰点，仅清晨冰质可靠，10点后建议撤离'
+    description: '接近冰点，仅清晨冰质可靠，10点后建议撤离',
+    icon: '🌅'
   },
   {
     id: 'cat-4',
     name: '高危禁攀区',
     temperatureRange: [3, 20] as [number, number],
     qualityLevels: ['D', 'E'] as const,
-    description: '温度过高，冰质不稳定，严禁任何攀爬活动'
+    description: '温度过高，冰质不稳定，严禁任何攀爬活动',
+    icon: '🚫'
   }
 ]
 
@@ -45,8 +50,12 @@ const WarningPage: React.FC = () => {
     acknowledgeAlert, 
     currentWaterfall, 
     getCurrentQuality, 
-    routes 
+    routes,
+    getRouteForWaterfall
   } = useAppContext()
+
+  const qualityLevel = currentWaterfall ? getCurrentQuality() : 'C'
+  const currentRoute = currentWaterfall ? getRouteForWaterfall(currentWaterfall.id) : undefined
 
   const unacknowledgedCount = useMemo(() => 
     currentAlerts.filter(a => !a.acknowledged).length
@@ -54,14 +63,68 @@ const WarningPage: React.FC = () => {
 
   const collapseRisk = useMemo(() => {
     if (!currentWaterfall) return null
-    const quality = getCurrentQuality()
     return checkCollapseRisk(
       currentWaterfall.temperature,
       currentWaterfall.temperature24h,
       currentWaterfall.temperature72h,
-      quality
+      qualityLevel
     )
-  }, [currentWaterfall, getCurrentQuality])
+  }, [currentWaterfall, qualityLevel])
+
+  const meltWindow = useMemo(() => {
+    if (!currentWaterfall) return null
+    return calculateMeltingWindow(currentWaterfall.temperature, 7.5, 17.5)
+  }, [currentWaterfall])
+
+  const trendSummary = useMemo(() => {
+    if (!currentWaterfall) return ''
+    
+    const tempRise24h = currentWaterfall.temperature - currentWaterfall.temperature24h
+    const risk = collapseRisk?.risk || 'low'
+    const levelLabels: Record<IceQualityLevel, string> = {
+      A: '优质冰', B: '良好冰', C: '一般冰', D: '较差冰', E: '危险冰'
+    }
+
+    let canClimb = true
+    let reason = ''
+
+    if (qualityLevel === 'E') {
+      canClimb = false
+      reason = '冰质极差，严禁攀爬'
+    } else if (qualityLevel === 'D') {
+      canClimb = false
+      reason = '冰质较差，需加密保护并严格控制人数'
+    } else if (risk === 'critical' || risk === 'high') {
+      canClimb = false
+      reason = '崩塌风险过高，建议取消作业'
+    } else if (currentWaterfall.temperature > 3) {
+      canClimb = false
+      reason = '温度过高，冰面融化风险大'
+    } else if (currentWaterfall.temperature > 0 && meltWindow) {
+      reason = `仅 ${String(Math.floor(meltWindow.startTime)).padStart(2, '0')}:{String(Math.round((meltWindow.startTime % 1) * 60)).padStart(2, '0')} 前可攀爬，午后冰面开始融化`
+    } else if (tempRise24h > 5) {
+      reason = `24h升温${tempRise24h.toFixed(1)}℃，冰质稳定性下降，建议缩短作业时间`
+    } else if (unacknowledgedCount > 0) {
+      reason = `存在${unacknowledgedCount}条未处理预警，建议确认后再安排作业`
+    } else {
+      reason = `${levelLabels[qualityLevel]} · 作业条件良好，可按标准流程带队`
+    }
+
+    return canClimb 
+      ? `✅ 可带队 - ${reason}`
+      : `⚠️ 谨慎作业 - ${reason}`
+  }, [currentWaterfall, qualityLevel, collapseRisk, meltWindow, unacknowledgedCount])
+
+  const currentWaterfallRoutes = useMemo(() => {
+    if (!currentWaterfall) return []
+    return routes.filter(r => r.waterfallId === currentWaterfall.id)
+  }, [routes, currentWaterfall])
+
+  const getRoutesInCategoryForCurrentWaterfall = (tempRange: [number, number]) => {
+    return currentWaterfallRoutes.filter(r => 
+      r.temperatureRange[0] >= tempRange[0] && r.temperatureRange[1] <= tempRange[1]
+    )
+  }
 
   const getAlertTypeInfo = (type: TemperatureAlert['type']) => {
     return {
@@ -79,17 +142,23 @@ const WarningPage: React.FC = () => {
     return routes.find(r => r.id === id)?.name || id
   }
 
-  const getRoutesInCategory = (tempRange: [number, number]) => {
-    return routes.filter(r => 
-      r.temperatureRange[0] >= tempRange[0] && r.temperatureRange[1] <= tempRange[1]
-    )
-  }
-
   const handleAcknowledge = (alertId: string) => {
     if (!currentWaterfall) return
     acknowledgeAlert(currentWaterfall.id, alertId)
     Taro.showToast({ title: '已确认', icon: 'success' })
     console.log('[Warning] Alert acknowledged:', alertId)
+  }
+
+  const goToRouteDetail = (routeId: string) => {
+    Taro.setStorageSync('pending_route_id', routeId)
+    Taro.switchTab({ url: '/pages/route/index' })
+  }
+
+  const goToRouteWithFilter = () => {
+    if (currentWaterfall) {
+      Taro.setStorageSync('pending_waterfall_filter', currentWaterfall.id)
+    }
+    Taro.switchTab({ url: '/pages/route/index' })
   }
 
   return (
@@ -127,13 +196,29 @@ const WarningPage: React.FC = () => {
                   </Text>
                 </View>
                 <View className={styles.trendItem}>
-                  <Text className={styles.trendLabel}>日照时长</Text>
-                  <Text className={styles.trendValue}>{currentWaterfall.sunlightHours}h</Text>
+                  <Text className={styles.trendLabel}>冰质等级</Text>
+                  <LevelBadge level={qualityLevel} size='small' showLabel={false} />
                 </View>
               </View>
             </>
           )}
         </View>
+
+        {currentWaterfall && (
+          <View className={classnames(
+            styles.trendSummary,
+            trendSummary.startsWith('✅') ? styles.summarySuccess : styles.summaryWarning
+          )}>
+            <Text className={styles.summaryText}>{trendSummary}</Text>
+            {currentRoute && meltWindow && (
+              <View className={styles.summaryMeta}>
+                <Text className={styles.metaItem}>冰质 {qualityLevel}级</Text>
+                <Text className={styles.metaItem}>可攀时段 {String(Math.floor(meltWindow.startTime)).padStart(2, '0')}:{String(Math.round((meltWindow.startTime % 1) * 60)).padStart(2, '0')} - {String(Math.floor(meltWindow.endTime)).padStart(2, '0')}:{String(Math.round((meltWindow.endTime % 1) * 60)).padStart(2, '0')}</Text>
+                <Text className={styles.metaItem}>{currentRoute.protectionPoints}个保护点</Text>
+              </View>
+            )}
+          </View>
+        )}
 
         {collapseRisk && collapseRisk.risk !== 'low' && currentWaterfall && (
           <View className={styles.collapseRisk}>
@@ -142,7 +227,7 @@ const WarningPage: React.FC = () => {
               <Text className={styles.riskText}>{collapseRisk.message}</Text>
             </View>
             <Text className={styles.riskMessage}>
-              {currentWaterfall.name} 区域冰瀑稳定性评估结果。冰质等级 {getCurrentQuality()} 级，温度变化可能导致冰层结构弱化，请注意观察冰壁状态变化。
+              {currentWaterfall.name} 区域冰瀑稳定性评估结果。冰质等级 {qualityLevel} 级，温度变化可能导致冰层结构弱化，请注意观察冰壁状态变化。
             </Text>
             <View className={styles.riskFactors}>
               <View className={styles.factor}>
@@ -208,7 +293,13 @@ const WarningPage: React.FC = () => {
                     </Text>
                     <View className={styles.affectedRoutes}>
                       {alert.affectedRoutes.slice(0, 2).map(rid => (
-                        <Text key={rid} className={styles.routeTag}>{getRouteName(rid)}</Text>
+                        <Text 
+                          key={rid} 
+                          className={styles.routeTagClickable}
+                          onClick={() => goToRouteDetail(rid)}
+                        >
+                          🔗 {getRouteName(rid)}
+                        </Text>
                       ))}
                       {alert.affectedRoutes.length > 2 && (
                         <Text className={styles.routeTag}>+{alert.affectedRoutes.length - 2}</Text>
@@ -221,15 +312,36 @@ const WarningPage: React.FC = () => {
           )}
         </View>
 
-        <SectionHeader title='温度分区' subtitle={`共 ${routes.length} 条线路入库`} />
+        <View className={styles.sectionHeaderRow}>
+          <SectionHeader 
+            title='温度分区' 
+            subtitle={currentWaterfall ? `当前冰瀑 · ${currentWaterfallRoutes.length} 条线路` : '全部线路'} 
+          />
+          {currentWaterfall && (
+            <Button className={styles.filterBtn} onClick={goToRouteWithFilter}>
+              查看全部 →
+            </Button>
+          )}
+        </View>
         <View className={styles.categorySection}>
           {categories.map(cat => {
-            const catRoutes = getRoutesInCategory(cat.temperatureRange)
+            const catRoutes = getRoutesInCategoryForCurrentWaterfall(cat.temperatureRange)
+            const isActive = currentRoute && 
+              currentRoute.temperatureRange[0] >= cat.temperatureRange[0] && 
+              currentRoute.temperatureRange[1] <= cat.temperatureRange[1]
             return (
-              <View key={cat.id} className={styles.categoryCard}>
+              <View 
+                key={cat.id} 
+                className={classnames(styles.categoryCard, isActive && styles.activeCat)}
+              >
                 <View className={styles.categoryHeader}>
-                  <Text className={styles.categoryName}>{cat.name}</Text>
-                  <Text className={styles.routeCount}>{catRoutes.length} 条线路</Text>
+                  <View className={styles.categoryTitleRow}>
+                    <Text className={styles.catIcon}>{cat.icon}</Text>
+                    <Text className={styles.categoryName}>{cat.name}</Text>
+                  </View>
+                  <Text className={classnames(styles.routeCount, catRoutes.length > 0 && styles.highlightCount)}>
+                    {catRoutes.length} 条
+                  </Text>
                 </View>
                 <Text className={styles.tempRange}>
                   🌡️ 适用温度 {cat.temperatureRange[0]}℃ ~ {cat.temperatureRange[1]}℃
@@ -249,10 +361,27 @@ const WarningPage: React.FC = () => {
                     </Text>
                   ))}
                 </View>
-                {catRoutes.length > 0 && (
+                {isActive && currentRoute && (
+                  <View className={styles.currentInCat}>
+                    <Text className={styles.currentLabel}>📍 当前线路</Text>
+                    <Text 
+                      className={styles.currentRouteName}
+                      onClick={() => goToRouteDetail(currentRoute.id)}
+                    >
+                      {currentRoute.name} →
+                    </Text>
+                  </View>
+                )}
+                {!isActive && catRoutes.length > 0 && (
                   <View className={styles.catRoutes}>
                     {catRoutes.slice(0, 2).map(r => (
-                      <Text key={r.id} className={styles.catRouteTag}>• {r.name}</Text>
+                      <Text 
+                        key={r.id} 
+                        className={styles.catRouteTagClickable}
+                        onClick={() => goToRouteDetail(r.id)}
+                      >
+                        • {r.name} →
+                      </Text>
                     ))}
                     {catRoutes.length > 2 && (
                       <Text className={styles.catRouteTag}>+{catRoutes.length - 2}条更多</Text>
