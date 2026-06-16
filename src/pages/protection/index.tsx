@@ -92,6 +92,7 @@ const ProtectionPage: React.FC = () => {
     if (!currentWaterfall || !plan) return
     setProtectionPlan(currentWaterfall.id, plan)
     Taro.showToast({ title: '保护方案已保存', icon: 'success' })
+    console.log('[Protection] Plan saved for:', currentWaterfall.id, 'points:', plan.totalPoints)
   }
 
   const getFallFactorClass = (ff: number) => {

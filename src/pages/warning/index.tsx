@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect } from 'react'
+import React, { useMemo } from 'react'
 import { View, Text, Button } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import classnames from 'classnames'
@@ -40,11 +40,17 @@ const categories = [
 ]
 
 const WarningPage: React.FC = () => {
-  const { alerts, acknowledgeAlert, currentWaterfall, getCurrentQuality, routes, recalculateAlerts } = useAppContext()
+  const { 
+    currentAlerts, 
+    acknowledgeAlert, 
+    currentWaterfall, 
+    getCurrentQuality, 
+    routes 
+  } = useAppContext()
 
   const unacknowledgedCount = useMemo(() => 
-    alerts.filter(a => !a.acknowledged).length
-  , [alerts])
+    currentAlerts.filter(a => !a.acknowledged).length
+  , [currentAlerts])
 
   const collapseRisk = useMemo(() => {
     if (!currentWaterfall) return null
@@ -56,13 +62,6 @@ const WarningPage: React.FC = () => {
       quality
     )
   }, [currentWaterfall, getCurrentQuality])
-
-  useEffect(() => {
-    if (currentWaterfall) {
-      console.log('[WarningPage] Waterfall changed, recalculating alerts')
-      recalculateAlerts()
-    }
-  }, [currentWaterfall?.id, currentWaterfall?.temperature, currentWaterfall?.temperature24h, currentWaterfall?.temperature72h])
 
   const getAlertTypeInfo = (type: TemperatureAlert['type']) => {
     return {
@@ -86,10 +85,11 @@ const WarningPage: React.FC = () => {
     )
   }
 
-  const handleAcknowledge = (id: string) => {
-    acknowledgeAlert(id)
+  const handleAcknowledge = (alertId: string) => {
+    if (!currentWaterfall) return
+    acknowledgeAlert(currentWaterfall.id, alertId)
     Taro.showToast({ title: '已确认', icon: 'success' })
-    console.log('[Warning] Alert acknowledged:', id)
+    console.log('[Warning] Alert acknowledged:', alertId)
   }
 
   return (
@@ -97,7 +97,9 @@ const WarningPage: React.FC = () => {
       <View className='page-container'>
         <View className='page-header'>
           <Text className='page-title'>温度预警</Text>
-          <Text className='page-subtitle'>实时监测气温变化，预警崩塌风险</Text>
+          <Text className='page-subtitle'>
+            {currentWaterfall ? `${currentWaterfall.name} · 实时监测` : '实时监测气温变化，预警崩塌风险'}
+          </Text>
         </View>
 
         <View className={styles.alertHeader}>
@@ -133,26 +135,26 @@ const WarningPage: React.FC = () => {
           )}
         </View>
 
-        {collapseRisk && collapseRisk.risk !== 'low' && (
+        {collapseRisk && collapseRisk.risk !== 'low' && currentWaterfall && (
           <View className={styles.collapseRisk}>
             <View className={styles.riskTitle}>
               <Text className={styles.riskIcon}>🚨</Text>
               <Text className={styles.riskText}>{collapseRisk.message}</Text>
             </View>
             <Text className={styles.riskMessage}>
-              {currentWaterfall?.name} 区域冰瀑稳定性评估结果。温度骤升可能导致冰层结构弱化，请注意观察冰壁状态变化。
+              {currentWaterfall.name} 区域冰瀑稳定性评估结果。冰质等级 {getCurrentQuality()} 级，温度变化可能导致冰层结构弱化，请注意观察冰壁状态变化。
             </Text>
             <View className={styles.riskFactors}>
               <View className={styles.factor}>
                 <Text className={styles.factorLabel}>当前温度</Text>
-                <Text className={styles.factorValue} style={{ color: currentWaterfall?.temperature && currentWaterfall.temperature > 0 ? '#F44336' : '#26A69A' }}>
-                  {currentWaterfall?.temperature}℃
+                <Text className={styles.factorValue} style={{ color: currentWaterfall.temperature > 0 ? '#F44336' : '#26A69A' }}>
+                  {currentWaterfall.temperature}℃
                 </Text>
               </View>
               <View className={styles.factor}>
                 <Text className={styles.factorLabel}>24h温升</Text>
-                <Text className={styles.factorValue} style={{ color: currentWaterfall && currentWaterfall.temperature - currentWaterfall.temperature24h > 5 ? '#F44336' : '#1E88E5' }}>
-                  +{currentWaterfall && currentWaterfall.temperature - currentWaterfall.temperature24h}℃
+                <Text className={styles.factorValue} style={{ color: currentWaterfall.temperature - currentWaterfall.temperature24h > 5 ? '#F44336' : '#1E88E5' }}>
+                  +{currentWaterfall.temperature - currentWaterfall.temperature24h}℃
                 </Text>
               </View>
               <View className={styles.factor}>
@@ -165,15 +167,15 @@ const WarningPage: React.FC = () => {
           </View>
         )}
 
-        <SectionHeader title='预警信息' subtitle={`${alerts.length} 条预警记录`} />
+        <SectionHeader title='预警信息' subtitle={`${currentAlerts.length} 条预警记录`} />
         <View className={styles.alertList}>
-          {alerts.length === 0 ? (
+          {currentAlerts.length === 0 ? (
             <View className={styles.emptyState}>
               <Text className={styles.emptyIcon}>✅</Text>
-              <Text className={styles.emptyText}>当前无预警，冰况稳定</Text>
+              <Text className={styles.emptyText}>当前冰瀑无预警，冰况稳定</Text>
             </View>
           ) : (
-            alerts.map(alert => {
+            currentAlerts.map(alert => {
               const typeInfo = getAlertTypeInfo(alert.type)
               return (
                 <View
@@ -268,7 +270,7 @@ const WarningPage: React.FC = () => {
           <View className={styles.tipsList}>
             <View className={styles.tipItem}>
               <Text className={styles.tipIcon}>🌅</Text>
-              <Text className={styles.tipText}>清晨是攀冰最佳时段，此时冰质最硬最稳定，建议大部分保护点可靠性最高。</Text>
+              <Text className={styles.tipText}>清晨是攀冰最佳时段，此时冰质最硬最稳定，保护点可靠性最高。</Text>
             </View>
             <View className={styles.tipItem}>
               <Text className={styles.tipIcon}>☀️</Text>
