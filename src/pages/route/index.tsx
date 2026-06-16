@@ -6,7 +6,7 @@ import { useAppContext } from '@/store/AppContext'
 import SectionHeader from '@/components/SectionHeader'
 import LevelBadge from '@/components/LevelBadge'
 import DataCard from '@/components/DataCard'
-import { getIceQualityLabel } from '@/utils/calculations'
+import { getIceQualityLabel, generateDailyReport, calculateDispatchPlan, type DispatchPlan } from '@/utils/calculations'
 
 import type { RouteRecord, WaterfallData } from '@/types'
 import styles from './index.module.scss'
@@ -22,10 +22,16 @@ const filterOptions = [
 ]
 
 const RoutePage: React.FC = () => {
-  const { routes, waterfalls, currentWaterfall, setCurrentWaterfall } = useAppContext()
+  const { routes, waterfalls, currentWaterfall, setCurrentWaterfall, allAlerts, qualityData, protectionPlans } = useAppContext()
   const [activeFilter, setActiveFilter] = useState('all')
   const [selectedWaterfallId, setSelectedWaterfallId] = useState<string>('')
   const [selectedRoute, setSelectedRoute] = useState<RouteRecord | null>(null)
+  const [checklistState, setChecklistState] = useState({
+    qualityChecked: false,
+    protectionChecked: false,
+    alertsChecked: false,
+    noStopZoneChecked: false
+  })
 
   useEffect(() => {
     try {
@@ -87,6 +93,90 @@ const RoutePage: React.FC = () => {
     }
   }
 
+  const openRouteDetail = (route: RouteRecord) => {
+    setSelectedRoute(route)
+    setChecklistState({
+      qualityChecked: false,
+      protectionChecked: false,
+      alertsChecked: false,
+      noStopZoneChecked: false
+    })
+  }
+
+  const getChecklistStatus = (route: RouteRecord) => {
+    const qualityPass = ['A', 'B', 'C'].includes(route.qualityLevel)
+    const protectionPass = !route.protectionPlan || route.protectionPlan.safetyMargin >= 1.5
+    const alertsForRoute = (allAlerts[route.waterfallId] || [])
+      .filter(a => a.affectedRoutes.includes(route.id) && !a.acknowledged)
+    const alertsPass = alertsForRoute.length === 0
+    const noStopZones = route.risks.filter(r => r.noStopZone)
+    const noStopZonePass = noStopZones.length === 0
+    const allPass = qualityPass && protectionPass && alertsPass && noStopZonePass
+
+    return { qualityPass, protectionPass, alertsPass, noStopZonePass, allPass, alertsForRoute, noStopZones }
+  }
+
+  const handleExportReport = async (route: RouteRecord) => {
+    const wf = waterfalls.find(w => w.id === route.waterfallId)
+    const quality = qualityData[route.waterfallId] || route.qualityData
+    const plan = protectionPlans[route.waterfallId] || route.protectionPlan
+    const alertsForRoute = (allAlerts[route.waterfallId] || [])
+      .filter(a => a.affectedRoutes.includes(route.id) && !a.acknowledged)
+
+    if (!wf || !quality) {
+      Taro.showToast({ title: '数据不完整', icon: 'none' })
+      return
+    }
+
+    const hasNoStopZone = route.risks.some(r => r.noStopZone)
+    const dispatchPlan = calculateDispatchPlan(
+      wf.temperature,
+      wf.temperature24h,
+      wf.temperature72h,
+      route.qualityLevel,
+      wf.height,
+      wf.sunlightHours,
+      alertsForRoute.length,
+      hasNoStopZone,
+      plan?.safetyMargin || 2
+    )
+
+    const report = generateDailyReport({
+      waterfallName: wf.name,
+      waterfallHeight: wf.height,
+      waterfallAngle: wf.angle,
+      tempNow: wf.temperature,
+      temp24h: wf.temperature24h,
+      temp72h: wf.temperature72h,
+      iceQuality: route.qualityLevel,
+      thickness: quality.thickness,
+      bubbleDensity: quality.bubbleDensity,
+      hollowSound: quality.hollowSound,
+      protectionPoints: plan?.totalPoints || route.protectionPoints,
+      safetyMargin: plan?.safetyMargin || 2,
+      unacknowledgedAlerts: alertsForRoute.length,
+      dispatchPlan,
+      routeName: route.name
+    })
+
+    try {
+      await Taro.setClipboardData({ data: report })
+      Taro.showModal({
+        title: '📋 日报已复制',
+        content: report + '\n\n（已复制到剪贴板，可直接粘贴到向导群）',
+        showCancel: false,
+        confirmText: '好的'
+      })
+    } catch (e) {
+      Taro.showModal({
+        title: '📋 出队日报',
+        content: report,
+        showCancel: false,
+        confirmText: '好的'
+      })
+    }
+  }
+
   return (
     <View className={styles.routePage}>
       <View className='page-container'>
@@ -143,7 +233,7 @@ const RoutePage: React.FC = () => {
             {filteredRoutes.map(route => {
               const isCurrent = currentWaterfall && route.waterfallId === currentWaterfall.id
               return (
-                <View key={route.id} className={classnames(styles.routeCard, isCurrent && styles.currentCard)} onClick={() => setSelectedRoute(route)}>
+                <View key={route.id} className={classnames(styles.routeCard, isCurrent && styles.currentCard)} onClick={() => openRouteDetail(route)}>
                   <View className={styles.photoRow}>
                     {route.photoUrls.length > 0 ? (
                       <Image className={styles.photo} src={route.photoUrls[0]} mode='aspectFill' />
@@ -193,7 +283,12 @@ const RoutePage: React.FC = () => {
                   <Text className={styles.modalTitle}>{selectedRoute.name}</Text>
                   <Text className={styles.modalSubtitle}>📍 {getWaterfallName(selectedRoute.waterfallId)}</Text>
                 </View>
-                <Button className={styles.closeBtn} onClick={() => setSelectedRoute(null)}>×</Button>
+                <View className={styles.modalHeaderActions}>
+                  <Button className={styles.exportBtn} onClick={() => handleExportReport(selectedRoute)}>
+                    📋 导出
+                  </Button>
+                  <Button className={styles.closeBtn} onClick={() => setSelectedRoute(null)}>×</Button>
+                </View>
               </View>
               <View className={styles.modalBody}>
                 <View className={styles.detailPhotos}>
@@ -303,6 +398,120 @@ const RoutePage: React.FC = () => {
                     )}
                   </View>
                 )}
+
+                {(() => {
+                  const { qualityPass, protectionPass, alertsPass, noStopZonePass, allPass, alertsForRoute, noStopZones } = getChecklistStatus(selectedRoute)
+                  const allChecked = checklistState.qualityChecked && checklistState.protectionChecked && checklistState.alertsChecked && checklistState.noStopZoneChecked
+                  const showReady = allChecked && allPass
+
+                  return (
+                    <View className={styles.detailSection}>
+                      <Text className={styles.sectionTitle}>✅ 出队检查清单</Text>
+                      
+                      <View className={styles.checklist}>
+                        <View 
+                          className={classnames(styles.checkItem, checklistState.qualityChecked && styles.checked)}
+                          onClick={() => setChecklistState(s => ({ ...s, qualityChecked: !s.qualityChecked }))}
+                        >
+                          <View className={classnames(styles.checkBox, qualityPass ? styles.pass : styles.fail)}>
+                            <Text>{checklistState.qualityChecked ? '✓' : ''}</Text>
+                          </View>
+                          <View className={styles.checkContent}>
+                            <View className={styles.checkHeader}>
+                              <Text className={styles.checkLabel}>冰质等级达标</Text>
+                              <Text className={classnames(styles.checkStatus, qualityPass ? styles.passText : styles.failText)}>
+                                {qualityPass ? '通过' : '不通过'}
+                              </Text>
+                            </View>
+                            <Text className={styles.checkDesc}>
+                              当前冰质 {selectedRoute.qualityLevel}级 {qualityPass ? '（A/B/C级适合带队）' : '（D/E级谨慎或禁止）'}
+                            </Text>
+                          </View>
+                        </View>
+
+                        <View 
+                          className={classnames(styles.checkItem, checklistState.protectionChecked && styles.checked)}
+                          onClick={() => setChecklistState(s => ({ ...s, protectionChecked: !s.protectionChecked }))}
+                        >
+                          <View className={classnames(styles.checkBox, protectionPass ? styles.pass : styles.fail)}>
+                            <Text>{checklistState.protectionChecked ? '✓' : ''}</Text>
+                          </View>
+                          <View className={styles.checkContent}>
+                            <View className={styles.checkHeader}>
+                              <Text className={styles.checkLabel}>保护点余度充足</Text>
+                              <Text className={classnames(styles.checkStatus, protectionPass ? styles.passText : styles.failText)}>
+                                {protectionPass ? '通过' : '不通过'}
+                              </Text>
+                            </View>
+                            <Text className={styles.checkDesc}>
+                              {selectedRoute.protectionPlan 
+                                ? `安全余度 ${selectedRoute.protectionPlan.safetyMargin.toFixed(1)}（需≥1.5）`
+                                : '未生成保护方案，请先完成打点'}
+                            </Text>
+                          </View>
+                        </View>
+
+                        <View 
+                          className={classnames(styles.checkItem, checklistState.alertsChecked && styles.checked)}
+                          onClick={() => setChecklistState(s => ({ ...s, alertsChecked: !s.alertsChecked }))}
+                        >
+                          <View className={classnames(styles.checkBox, alertsPass ? styles.pass : styles.fail)}>
+                            <Text>{checklistState.alertsChecked ? '✓' : ''}</Text>
+                          </View>
+                          <View className={styles.checkContent}>
+                            <View className={styles.checkHeader}>
+                              <Text className={styles.checkLabel}>无未确认预警</Text>
+                              <Text className={classnames(styles.checkStatus, alertsPass ? styles.passText : styles.failText)}>
+                                {alertsPass ? '通过' : '不通过'}
+                              </Text>
+                            </View>
+                            <Text className={styles.checkDesc}>
+                              {alertsPass 
+                                ? '当前无未处理的温度预警' 
+                                : `有 ${alertsForRoute.length} 条预警待确认，请先前往温度预警页处理`}
+                            </Text>
+                          </View>
+                        </View>
+
+                        <View 
+                          className={classnames(styles.checkItem, checklistState.noStopZoneChecked && styles.checked)}
+                          onClick={() => setChecklistState(s => ({ ...s, noStopZoneChecked: !s.noStopZoneChecked }))}
+                        >
+                          <View className={classnames(styles.checkBox, noStopZonePass ? styles.pass : styles.fail)}>
+                            <Text>{checklistState.noStopZoneChecked ? '✓' : ''}</Text>
+                          </View>
+                          <View className={styles.checkContent}>
+                            <View className={styles.checkHeader}>
+                              <Text className={styles.checkLabel}>无禁停区域</Text>
+                              <Text className={classnames(styles.checkStatus, noStopZonePass ? styles.passText : styles.failText)}>
+                                {noStopZonePass ? '通过' : '注意'}
+                              </Text>
+                            </View>
+                            <Text className={styles.checkDesc}>
+                              {noStopZonePass 
+                                ? '线路无禁停区域' 
+                                : `有 ${noStopZones.length} 处禁停区：${noStopZones.map(z => z.position).join('、')}，攀登时注意避开`}
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+
+                      {showReady && (
+                        <View className={styles.readyBanner}>
+                          <Text className={styles.readyIcon}>✅</Text>
+                          <Text className={styles.readyText}>全部检查通过，适合带队</Text>
+                        </View>
+                      )}
+
+                      {allChecked && !allPass && (
+                        <View className={styles.notReadyBanner}>
+                          <Text className={styles.notReadyIcon}>⚠️</Text>
+                          <Text className={styles.notReadyText}>存在未通过项，请确认风险后再决定是否出队</Text>
+                        </View>
+                      )}
+                    </View>
+                  )
+                })()}
 
                 <View className={styles.detailSection}>
                   <Text className={styles.sectionTitle}>基础信息</Text>

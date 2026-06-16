@@ -236,6 +236,12 @@
         margin-top: $spacing-xs;
       }
 
+      .modalHeaderActions {
+        display: flex;
+        align-items: center;
+        gap: $spacing-sm;
+      }
+
       .closeBtn {
         @include button-reset;
         width: 56rpx;
@@ -245,6 +251,17 @@
         background: $color-bg-secondary;
         color: $color-text-secondary;
         font-size: $font-size-lg;
+      }
+
+      .exportBtn {
+        @include button-reset;
+        padding: $spacing-sm $spacing-md;
+        background: $color-primary-gradient;
+        border-radius: $radius-button;
+        color: $color-text-light;
+        font-size: $font-size-sm;
+        font-weight: $font-weight-medium;
+        box-shadow: $shadow-button;
       }
     }
 
@@ -422,6 +439,131 @@
       font-size: $font-size-xs;
       color: $color-text-secondary;
     }
+  }
+}
+
+.checklist {
+  .checkItem {
+    display: flex;
+    align-items: flex-start;
+    padding: $spacing-md;
+    background: $color-bg-secondary;
+    border-radius: $radius-sm;
+    margin-bottom: $spacing-sm;
+    border: 2rpx solid transparent;
+    transition: all $transition-base;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    &.checked {
+      border-color: rgba(38, 166, 154, 0.3);
+      background: rgba(38, 166, 154, 0.05);
+    }
+
+    .checkBox {
+      width: 40rpx;
+      height: 40rpx;
+      border-radius: $radius-xs;
+      border: 2rpx solid $color-border;
+      margin-right: $spacing-md;
+      margin-top: 2rpx;
+      flex-shrink: 0;
+      @include flex-center;
+      color: #fff;
+      font-size: $font-size-xs;
+      font-weight: bold;
+
+      &.pass {
+        background: $color-success;
+        border-color: $color-success;
+      }
+
+      &.fail {
+        background: $color-warning;
+        border-color: $color-warning;
+      }
+    }
+
+    .checkContent {
+      flex: 1;
+
+      .checkHeader {
+        @include flex-between;
+        margin-bottom: $spacing-xs;
+
+        .checkLabel {
+          font-size: $font-size-sm;
+          font-weight: $font-weight-medium;
+          color: $color-text-primary;
+        }
+
+        .checkStatus {
+          font-size: $font-size-xs;
+          font-weight: $font-weight-semibold;
+
+          &.passText {
+            color: $color-success;
+          }
+
+          &.failText {
+            color: $color-warning;
+          }
+        }
+      }
+
+      .checkDesc {
+        font-size: $font-size-xs;
+        color: $color-text-secondary;
+        line-height: 1.5;
+      }
+    }
+  }
+}
+
+.readyBanner {
+  margin-top: $spacing-md;
+  padding: $spacing-md $spacing-lg;
+  background: rgba(38, 166, 154, 0.1);
+  border: 2rpx solid rgba(38, 166, 154, 0.3);
+  border-radius: $radius-md;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  .readyIcon {
+    font-size: 32rpx;
+    margin-right: $spacing-sm;
+  }
+
+  .readyText {
+    font-size: $font-size-md;
+    font-weight: $font-weight-semibold;
+    color: $color-success;
+  }
+}
+
+.notReadyBanner {
+  margin-top: $spacing-md;
+  padding: $spacing-md $spacing-lg;
+  background: rgba(255, 152, 0, 0.1);
+  border: 2rpx solid rgba(255, 152, 0, 0.3);
+  border-radius: $radius-md;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  .notReadyIcon {
+    font-size: 32rpx;
+    margin-right: $spacing-sm;
+  }
+
+  .notReadyText {
+    font-size: $font-size-md;
+    font-weight: $font-weight-semibold;
+    color: $color-warning;
+    text-align: center;
   }
 }
 

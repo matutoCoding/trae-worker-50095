@@ -4,6 +4,139 @@
   min-height: 100vh;
 }
 
+.headerRow {
+  @include flex-between;
+  align-items: flex-start;
+
+  .exportBtn {
+    @include button-reset;
+    padding: $spacing-sm $spacing-md;
+    background: $color-primary-gradient;
+    color: $color-text-light;
+    border-radius: $radius-button;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-semibold;
+    box-shadow: $shadow-button;
+  }
+}
+
+.dispatchCard {
+  border-radius: $radius-md;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-lg;
+  background: $color-bg-card;
+  box-shadow: $shadow-card;
+  border: 2rpx solid transparent;
+  position: relative;
+  overflow: hidden;
+
+  &.risk_safe {
+    border-color: rgba(38, 166, 154, 0.3);
+    background: linear-gradient(135deg, rgba(38, 166, 154, 0.08) 0%, #FFFFFF 100%);
+  }
+
+  &.risk_caution {
+    border-color: rgba(255, 152, 0, 0.3);
+    background: linear-gradient(135deg, rgba(255, 152, 0, 0.08) 0%, #FFFFFF 100%);
+  }
+
+  &.risk_danger, &.risk_forbidden {
+    border-color: rgba(244, 67, 54, 0.3);
+    background: linear-gradient(135deg, rgba(244, 67, 54, 0.08) 0%, #FFFFFF 100%);
+  }
+
+  .dispatchHeader {
+    @include flex-between;
+    align-items: center;
+    margin-bottom: $spacing-md;
+
+    .dispatchTitle {
+      font-size: $font-size-xl;
+      font-weight: $font-weight-semibold;
+      color: $color-text-primary;
+    }
+
+    .dispatchStatus {
+      font-size: $font-size-sm;
+      font-weight: $font-weight-semibold;
+      padding: $spacing-xs $spacing-md;
+      border-radius: $radius-button;
+
+      &.status_safe {
+        background: rgba(38, 166, 154, 0.15);
+        color: $color-success;
+      }
+
+      &.status_caution {
+        background: rgba(255, 152, 0, 0.15);
+        color: $color-warning;
+      }
+
+      &.status_danger, &.status_forbidden {
+        background: rgba(244, 67, 54, 0.15);
+        color: $color-danger;
+      }
+    }
+  }
+
+  .dispatchGrid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: $spacing-sm;
+    margin-bottom: $spacing-md;
+
+    .dispatchItem {
+      text-align: center;
+      padding: $spacing-sm;
+      background: rgba(255, 255, 255, 0.8);
+      border-radius: $radius-sm;
+
+      .dispatchIcon {
+        font-size: 40rpx;
+        display: block;
+        margin-bottom: $spacing-xs;
+      }
+
+      .dispatchLabel {
+        font-size: $font-size-xs;
+        color: $color-text-tertiary;
+        display: block;
+        margin-bottom: $spacing-xs;
+      }
+
+      .dispatchValue {
+        font-size: $font-size-md;
+        font-weight: $font-weight-semibold;
+        color: $color-text-primary;
+      }
+    }
+  }
+
+  .dispatchReminders {
+    margin-bottom: $spacing-sm;
+    padding-top: $spacing-sm;
+    border-top: 1rpx solid $color-border-light;
+
+    .dispatchReminder {
+      font-size: $font-size-xs;
+      color: $color-text-secondary;
+      line-height: 2;
+    }
+  }
+
+  .dispatchReason {
+    padding: $spacing-sm;
+    background: rgba(0, 0, 0, 0.03);
+    border-radius: $radius-sm;
+
+    .dispatchReasonText {
+      font-size: $font-size-sm;
+      color: $color-text-secondary;
+      font-weight: $font-weight-medium;
+    }
+  }
+}
+
 .alertHeader {
   background: linear-gradient(135deg, rgba(244, 67, 54, 0.15) 0%, rgba(255, 152, 0, 0.1) 100%);
   border-radius: $radius-md;

@@ -5,7 +5,7 @@ import classnames from 'classnames'
 import { useAppContext } from '@/store/AppContext'
 import SectionHeader from '@/components/SectionHeader'
 import LevelBadge from '@/components/LevelBadge'
-import { checkCollapseRisk, getIceQualityColor, calculateMeltingWindow } from '@/utils/calculations'
+import { checkCollapseRisk, getIceQualityColor, calculateMeltingWindow, calculateDispatchPlan, generateDailyReport, type DispatchPlan } from '@/utils/calculations'
 import type { TemperatureAlert, IceQualityLevel } from '@/types'
 import styles from './index.module.scss'
 
@@ -51,11 +51,15 @@ const WarningPage: React.FC = () => {
     currentWaterfall, 
     getCurrentQuality, 
     routes,
-    getRouteForWaterfall
+    getRouteForWaterfall,
+    qualityData,
+    protectionPlans
   } = useAppContext()
 
   const qualityLevel = currentWaterfall ? getCurrentQuality() : 'C'
   const currentRoute = currentWaterfall ? getRouteForWaterfall(currentWaterfall.id) : undefined
+  const currentQuality = currentWaterfall ? qualityData[currentWaterfall.id] : undefined
+  const currentPlan = currentWaterfall ? protectionPlans[currentWaterfall.id] : undefined
 
   const unacknowledgedCount = useMemo(() => 
     currentAlerts.filter(a => !a.acknowledged).length
@@ -76,44 +80,47 @@ const WarningPage: React.FC = () => {
     return calculateMeltingWindow(currentWaterfall.temperature, 7.5, 17.5)
   }, [currentWaterfall])
 
+  const hasNoStopZone = useMemo(() => {
+    if (!currentRoute) return false
+    return currentRoute.risks.some(r => r.noStopZone)
+  }, [currentRoute])
+
+  const dispatchPlan = useMemo((): DispatchPlan | null => {
+    if (!currentWaterfall) return null
+    return calculateDispatchPlan(
+      currentWaterfall.temperature,
+      currentWaterfall.temperature24h,
+      currentWaterfall.temperature72h,
+      qualityLevel,
+      currentWaterfall.height,
+      currentWaterfall.sunlightHours,
+      unacknowledgedCount,
+      hasNoStopZone,
+      currentPlan?.safetyMargin || 2
+    )
+  }, [currentWaterfall, qualityLevel, unacknowledgedCount, hasNoStopZone, currentPlan])
+
   const trendSummary = useMemo(() => {
-    if (!currentWaterfall) return ''
+    if (!dispatchPlan || !currentWaterfall) return ''
     
     const tempRise24h = currentWaterfall.temperature - currentWaterfall.temperature24h
-    const risk = collapseRisk?.risk || 'low'
     const levelLabels: Record<IceQualityLevel, string> = {
       A: '优质冰', B: '良好冰', C: '一般冰', D: '较差冰', E: '危险冰'
     }
 
-    let canClimb = true
-    let reason = ''
-
-    if (qualityLevel === 'E') {
-      canClimb = false
-      reason = '冰质极差，严禁攀爬'
-    } else if (qualityLevel === 'D') {
-      canClimb = false
-      reason = '冰质较差，需加密保护并严格控制人数'
-    } else if (risk === 'critical' || risk === 'high') {
-      canClimb = false
-      reason = '崩塌风险过高，建议取消作业'
-    } else if (currentWaterfall.temperature > 3) {
-      canClimb = false
-      reason = '温度过高，冰面融化风险大'
-    } else if (currentWaterfall.temperature > 0 && meltWindow) {
-      reason = `仅 ${String(Math.floor(meltWindow.startTime)).padStart(2, '0')}:{String(Math.round((meltWindow.startTime % 1) * 60)).padStart(2, '0')} 前可攀爬，午后冰面开始融化`
-    } else if (tempRise24h > 5) {
-      reason = `24h升温${tempRise24h.toFixed(1)}℃，冰质稳定性下降，建议缩短作业时间`
-    } else if (unacknowledgedCount > 0) {
-      reason = `存在${unacknowledgedCount}条未处理预警，建议确认后再安排作业`
-    } else {
-      reason = `${levelLabels[qualityLevel]} · 作业条件良好，可按标准流程带队`
+    if (!dispatchPlan.canDispatch) {
+      return `⚠️ 谨慎作业 - ${dispatchPlan.reason}`
     }
-
-    return canClimb 
-      ? `✅ 可带队 - ${reason}`
-      : `⚠️ 谨慎作业 - ${reason}`
-  }, [currentWaterfall, qualityLevel, collapseRisk, meltWindow, unacknowledgedCount])
+    
+    const startStr = `${String(Math.floor(dispatchPlan.startTime)).padStart(2, '0')}:${String(Math.round((dispatchPlan.startTime % 1) * 60)).padStart(2, '0')}`
+    const endStr = `${String(Math.floor(dispatchPlan.endTime)).padStart(2, '0')}:${String(Math.round((dispatchPlan.endTime % 1) * 60)).padStart(2, '0')}`
+    
+    if (dispatchPlan.riskLevel === 'caution') {
+      return `⚠️ 谨慎作业 - ${dispatchPlan.reason} · ${startStr}-${endStr} · 限${dispatchPlan.maxClimbers}人`
+    }
+    
+    return `✅ 可带队 - ${levelLabels[qualityLevel]} · ${startStr}-${endStr} · 可带${dispatchPlan.maxClimbers}人`
+  }, [dispatchPlan, currentWaterfall, qualityLevel])
 
   const currentWaterfallRoutes = useMemo(() => {
     if (!currentWaterfall) return []
@@ -121,9 +128,16 @@ const WarningPage: React.FC = () => {
   }, [routes, currentWaterfall])
 
   const getRoutesInCategoryForCurrentWaterfall = (tempRange: [number, number]) => {
-    return currentWaterfallRoutes.filter(r => 
-      r.temperatureRange[0] >= tempRange[0] && r.temperatureRange[1] <= tempRange[1]
-    )
+    return currentWaterfallRoutes.filter(r => {
+      const overlap = Math.min(r.temperatureRange[1], tempRange[1]) - Math.max(r.temperatureRange[0], tempRange[0])
+      return overlap >= 0
+    })
+  }
+
+  const isRouteInCategory = (tempRange: [number, number]) => {
+    if (!currentRoute) return false
+    const overlap = Math.min(currentRoute.temperatureRange[1], tempRange[1]) - Math.max(currentRoute.temperatureRange[0], tempRange[0])
+    return overlap >= 0
   }
 
   const getAlertTypeInfo = (type: TemperatureAlert['type']) => {
@@ -161,14 +175,70 @@ const WarningPage: React.FC = () => {
     Taro.switchTab({ url: '/pages/route/index' })
   }
 
+  const handleExportReport = async () => {
+    if (!currentWaterfall || !currentRoute || !dispatchPlan || !currentQuality) {
+      Taro.showToast({ title: '数据不完整', icon: 'none' })
+      return
+    }
+
+    const report = generateDailyReport({
+      waterfallName: currentWaterfall.name,
+      waterfallHeight: currentWaterfall.height,
+      waterfallAngle: currentWaterfall.angle,
+      tempNow: currentWaterfall.temperature,
+      temp24h: currentWaterfall.temperature24h,
+      temp72h: currentWaterfall.temperature72h,
+      iceQuality: qualityLevel,
+      thickness: currentQuality.thickness,
+      bubbleDensity: currentQuality.bubbleDensity,
+      hollowSound: currentQuality.hollowSound,
+      protectionPoints: currentPlan?.totalPoints || currentRoute.protectionPoints,
+      safetyMargin: currentPlan?.safetyMargin || 2,
+      unacknowledgedAlerts: unacknowledgedCount,
+      dispatchPlan,
+      routeName: currentRoute.name
+    })
+
+    try {
+      await Taro.setClipboardData({ data: report })
+      Taro.showModal({
+        title: '📋 日报已复制',
+        content: report + '\n\n（已复制到剪贴板，可直接粘贴到向导群）',
+        showCancel: false,
+        confirmText: '好的'
+      })
+      console.log('[Warning] Report exported and copied')
+    } catch (e) {
+      Taro.showModal({
+        title: '📋 出队日报',
+        content: report,
+        showCancel: false,
+        confirmText: '好的'
+      })
+    }
+  }
+
+  const formatTime = (time: number) => {
+    return `${String(Math.floor(time)).padStart(2, '0')}:${String(Math.round((time % 1) * 60)).padStart(2, '0')}`
+  }
+
   return (
     <View className={styles.warningPage}>
       <View className='page-container'>
         <View className='page-header'>
-          <Text className='page-title'>温度预警</Text>
-          <Text className='page-subtitle'>
-            {currentWaterfall ? `${currentWaterfall.name} · 实时监测` : '实时监测气温变化，预警崩塌风险'}
-          </Text>
+          <View className={styles.headerRow}>
+            <View>
+              <Text className='page-title'>温度预警</Text>
+              <Text className='page-subtitle'>
+                {currentWaterfall ? `${currentWaterfall.name} · 实时监测` : '实时监测气温变化，预警崩塌风险'}
+              </Text>
+            </View>
+            {currentWaterfall && dispatchPlan && (
+              <Button className={styles.exportBtn} onClick={handleExportReport}>
+                📋 日报
+              </Button>
+            )}
+          </View>
         </View>
 
         <View className={styles.alertHeader}>
@@ -204,6 +274,63 @@ const WarningPage: React.FC = () => {
           )}
         </View>
 
+        {currentWaterfall && dispatchPlan && (
+          <View className={classnames(
+            styles.dispatchCard,
+            styles[`risk_${dispatchPlan.riskLevel}`]
+          )}>
+            <View className={styles.dispatchHeader}>
+              <Text className={styles.dispatchTitle}>
+                {dispatchPlan.riskLevel === 'safe' ? '✅' : dispatchPlan.riskLevel === 'caution' ? '⚠️' : '🚫'}
+                今日出队方案
+              </Text>
+              <Text className={classnames(
+                styles.dispatchStatus,
+                styles[`status_${dispatchPlan.riskLevel}`]
+              )}>
+                {dispatchPlan.canDispatch ? '可带队' : '建议取消'}
+              </Text>
+            </View>
+
+            <View className={styles.dispatchGrid}>
+              <View className={styles.dispatchItem}>
+                <Text className={styles.dispatchIcon}>🌅</Text>
+                <Text className={styles.dispatchLabel}>开攀时间</Text>
+                <Text className={styles.dispatchValue}>{formatTime(dispatchPlan.startTime)}</Text>
+              </View>
+              <View className={styles.dispatchItem}>
+                <Text className={styles.dispatchIcon}>🌇</Text>
+                <Text className={styles.dispatchLabel}>撤离时间</Text>
+                <Text className={styles.dispatchValue}>{formatTime(dispatchPlan.endTime)}</Text>
+              </View>
+              <View className={styles.dispatchItem}>
+                <Text className={styles.dispatchIcon}>👥</Text>
+                <Text className={styles.dispatchLabel}>可带人数</Text>
+                <Text className={styles.dispatchValue}>{dispatchPlan.maxClimbers}人</Text>
+              </View>
+              <View className={styles.dispatchItem}>
+                <Text className={styles.dispatchIcon}>🔒</Text>
+                <Text className={styles.dispatchLabel}>加密保护</Text>
+                <Text className={styles.dispatchValue}>
+                  {dispatchPlan.needExtraProtection ? '是' : '否'}
+                </Text>
+              </View>
+            </View>
+
+            {dispatchPlan.safetyReminders.length > 0 && (
+              <View className={styles.dispatchReminders}>
+                {dispatchPlan.safetyReminders.slice(0, 3).map((r, i) => (
+                  <Text key={i} className={styles.dispatchReminder}>• {r}</Text>
+                ))}
+              </View>
+            )}
+
+            <View className={styles.dispatchReason}>
+              <Text className={styles.dispatchReasonText}>{dispatchPlan.reason}</Text>
+            </View>
+          </View>
+        )}
+
         {currentWaterfall && (
           <View className={classnames(
             styles.trendSummary,
@@ -213,7 +340,7 @@ const WarningPage: React.FC = () => {
             {currentRoute && meltWindow && (
               <View className={styles.summaryMeta}>
                 <Text className={styles.metaItem}>冰质 {qualityLevel}级</Text>
-                <Text className={styles.metaItem}>可攀时段 {String(Math.floor(meltWindow.startTime)).padStart(2, '0')}:{String(Math.round((meltWindow.startTime % 1) * 60)).padStart(2, '0')} - {String(Math.floor(meltWindow.endTime)).padStart(2, '0')}:{String(Math.round((meltWindow.endTime % 1) * 60)).padStart(2, '0')}</Text>
+                <Text className={styles.metaItem}>可攀时段 {formatTime(meltWindow.startTime)} - {formatTime(meltWindow.endTime)}</Text>
                 <Text className={styles.metaItem}>{currentRoute.protectionPoints}个保护点</Text>
               </View>
             )}
@@ -326,9 +453,7 @@ const WarningPage: React.FC = () => {
         <View className={styles.categorySection}>
           {categories.map(cat => {
             const catRoutes = getRoutesInCategoryForCurrentWaterfall(cat.temperatureRange)
-            const isActive = currentRoute && 
-              currentRoute.temperatureRange[0] >= cat.temperatureRange[0] && 
-              currentRoute.temperatureRange[1] <= cat.temperatureRange[1]
+            const isActive = isRouteInCategory(cat.temperatureRange)
             return (
               <View 
                 key={cat.id} 
@@ -370,6 +495,9 @@ const WarningPage: React.FC = () => {
                     >
                       {currentRoute.name} →
                     </Text>
+                    <Text className={styles.tempHint}>
+                      温区 {currentRoute.temperatureRange[0]}℃ ~ {currentRoute.temperatureRange[1]}℃
+                    </Text>
                   </View>
                 )}
                 {!isActive && catRoutes.length > 0 && (
@@ -380,7 +508,7 @@ const WarningPage: React.FC = () => {
                         className={styles.catRouteTagClickable}
                         onClick={() => goToRouteDetail(r.id)}
                       >
-                        • {r.name} →
+                        • {r.name} (温区{r.temperatureRange[0]}~{r.temperatureRange[1]}℃) →
                       </Text>
                     ))}
                     {catRoutes.length > 2 && (

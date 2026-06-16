@@ -227,3 +227,203 @@ export const getIceQualityColor = (level: IceQualityLevel): string => {
   }
   return colors[level]
 }
+
+export interface DispatchPlan {
+  canDispatch: boolean
+  reason: string
+  startTime: number
+  endTime: number
+  maxClimbers: number
+  needExtraProtection: boolean
+  protectionSpacing: number
+  safetyReminders: string[]
+  riskLevel: 'safe' | 'caution' | 'danger' | 'forbidden'
+}
+
+export const calculateDispatchPlan = (
+  tempNow: number,
+  temp24h: number,
+  temp72h: number,
+  iceQuality: IceQualityLevel,
+  waterfallHeight: number,
+  sunlightHours: number,
+  unacknowledgedAlerts: number,
+  hasNoStopZone: boolean,
+  protectionMargin: number
+): DispatchPlan => {
+  const tempRise24h = tempNow - temp24h
+  const { risk: collapseRisk } = checkCollapseRisk(tempNow, temp24h, temp72h, iceQuality)
+  const meltWindow = calculateMeltingWindow(tempNow, 7.5, 17.5)
+
+  let canDispatch = true
+  let riskLevel: DispatchPlan['riskLevel'] = 'safe'
+  let reason = '作业条件良好'
+  let maxClimbers = 6
+  let needExtraProtection = false
+  let protectionSpacing = 4
+  const safetyReminders: string[] = []
+
+  if (iceQuality === 'E') {
+    canDispatch = false
+    riskLevel = 'forbidden'
+    reason = '冰质极差，严禁带队攀爬'
+    maxClimbers = 0
+  } else if (iceQuality === 'D') {
+    canDispatch = false
+    riskLevel = 'danger'
+    reason = '冰质较差，不建议带队作业'
+    maxClimbers = 0
+  } else if (collapseRisk === 'critical') {
+    canDispatch = false
+    riskLevel = 'danger'
+    reason = '崩塌风险极高，取消当日作业'
+    maxClimbers = 0
+  } else if (tempNow > 3) {
+    canDispatch = false
+    riskLevel = 'danger'
+    reason = '气温过高，冰面融化风险大'
+    maxClimbers = 0
+  } else {
+    if (iceQuality === 'C') {
+      riskLevel = 'caution'
+      maxClimbers = 4
+      needExtraProtection = true
+      protectionSpacing = 3
+      safetyReminders.push('冰质一般，需加密保护点')
+    } else if (iceQuality === 'B') {
+      maxClimbers = 6
+      protectionSpacing = 4
+      safetyReminders.push('冰质良好，按标准间距布置保护')
+    } else if (iceQuality === 'A') {
+      maxClimbers = 8
+      protectionSpacing = 5
+      safetyReminders.push('冰质优秀，保护点间距可适当放宽')
+    }
+
+    if (collapseRisk === 'high') {
+      riskLevel = 'caution'
+      maxClimbers = Math.min(maxClimbers, 3)
+      needExtraProtection = true
+      safetyReminders.push('崩塌风险较高，严格控制人数')
+      reason = '有一定风险，谨慎作业'
+    }
+
+    if (tempRise24h > 5) {
+      riskLevel = 'caution'
+      maxClimbers = Math.min(maxClimbers, 4)
+      safetyReminders.push(`24h升温${tempRise24h.toFixed(1)}℃，注意冰质变化`)
+    }
+
+    if (tempNow > 0 && meltWindow) {
+      riskLevel = 'caution'
+      safetyReminders.push(`午后冰面将在${String(Math.floor(meltWindow.endTime)).padStart(2, '0')}:${String(Math.round((meltWindow.endTime % 1) * 60)).padStart(2, '0')}后开始融化`)
+    }
+
+    if (unacknowledgedAlerts > 0) {
+      safetyReminders.push(`存在${unacknowledgedAlerts}条未确认预警，请先确认`)
+    }
+
+    if (hasNoStopZone) {
+      safetyReminders.push('线路含禁停区域，攀登时禁止停留')
+      needExtraProtection = true
+    }
+
+    if (protectionMargin < 1.5) {
+      needExtraProtection = true
+      safetyReminders.push('冰锥抗拔力余度不足，建议使用更长冰锥')
+    }
+
+    if (waterfallHeight > 80) {
+      maxClimbers = Math.min(maxClimbers, 4)
+      safetyReminders.push('冰瀑较高，建议分组攀爬')
+    }
+
+    if (sunlightHours > 6) {
+      safetyReminders.push('日照时间较长，午后注意观察融水')
+    }
+
+    if (canDispatch && riskLevel === 'safe') {
+      reason = '作业条件良好，可按计划带队'
+    } else if (canDispatch && riskLevel === 'caution') {
+      reason = '有一定风险，谨慎带队作业'
+    }
+  }
+
+  return {
+    canDispatch,
+    reason,
+    startTime: meltWindow?.startTime || 7.5,
+    endTime: meltWindow?.endTime || 16.5,
+    maxClimbers,
+    needExtraProtection,
+    protectionSpacing,
+    safetyReminders,
+    riskLevel
+  }
+}
+
+export const generateDailyReport = (params: {
+  waterfallName: string
+  waterfallHeight: number
+  waterfallAngle: number
+  tempNow: number
+  temp24h: number
+  temp72h: number
+  iceQuality: IceQualityLevel
+  thickness: number
+  bubbleDensity: number
+  hollowSound: string
+  protectionPoints: number
+  safetyMargin: number
+  unacknowledgedAlerts: number
+  dispatchPlan: DispatchPlan
+  routeName: string
+}): string => {
+  const now = new Date()
+  const dateStr = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`
+  
+  const hollowSoundLabels: Record<string, string> = {
+    none: '无', slight: '轻微', moderate: '中度', severe: '严重'
+  }
+
+  const lines = [
+    `【攀冰出队日报】${dateStr}`,
+    '',
+    `📍 冰瀑：${params.waterfallName}`,
+    `📏 参数：高度${params.waterfallHeight}m · 倾角${params.waterfallAngle}°`,
+    ``,
+    `🌡️ 气温：当前${params.tempNow}℃ · 24h变温${params.tempNow - params.temp24h > 0 ? '+' : ''}${(params.tempNow - params.temp24h).toFixed(1)}℃ · 72h变温${params.tempNow - params.temp72h > 0 ? '+' : ''}${(params.tempNow - params.temp72h).toFixed(1)}℃`,
+    ``,
+    `❄️ 冰质评估：${params.iceQuality}级`,
+    `   冰层厚度${params.thickness}cm · 气泡密度${params.bubbleDensity}% · 空鼓声${hollowSoundLabels[params.hollowSound] || params.hollowSound}`,
+    ``,
+    `🧗 保护方案：${params.protectionPoints}个保护点 · 抗拔力余度${params.safetyMargin.toFixed(2)}`,
+    ``,
+    `📋 出队决策：${params.dispatchPlan.canDispatch ? '✅ 可带队' : '❌ 建议取消'}`,
+    `   ${params.dispatchPlan.reason}`,
+    `   开攀时间：${String(Math.floor(params.dispatchPlan.startTime)).padStart(2, '0')}:${String(Math.round((params.dispatchPlan.startTime % 1) * 60)).padStart(2, '0')}`,
+    `   撤离时间：${String(Math.floor(params.dispatchPlan.endTime)).padStart(2, '0')}:${String(Math.round((params.dispatchPlan.endTime % 1) * 60)).padStart(2, '0')}`,
+    `   可带人数：${params.dispatchPlan.maxClimbers}人`,
+    `   加密保护：${params.dispatchPlan.needExtraProtection ? '是' : '否'}`,
+    ``,
+    `线路：${params.routeName}`,
+  ]
+
+  if (params.dispatchPlan.safetyReminders.length > 0) {
+    lines.push('')
+    lines.push('⚠️ 安全提醒：')
+    params.dispatchPlan.safetyReminders.forEach((r, i) => {
+      lines.push(`   ${i + 1}. ${r}`)
+    })
+  }
+
+  if (params.unacknowledgedAlerts > 0) {
+    lines.push('')
+    lines.push(`🚨 存在${params.unacknowledgedAlerts}条未确认预警，请先处理！`)
+  }
+
+  lines.push('')
+  lines.push('—— 生成于攀冰安全规划系统')
+
+  return lines.join('\n')
+}
