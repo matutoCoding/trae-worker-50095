@@ -30,6 +30,27 @@ const QualityPage: React.FC = () => {
     { id: 't1', x: 50, y: 60, width: 20, height: 12, label: '中部薄冰区', severity: 'medium' }
   ])
 
+  React.useEffect(() => {
+    if (currentWaterfall) {
+      const data = qualityData[currentWaterfall.id]
+      if (data) {
+        setColorType(data.colorType)
+        setBubbleDensity(data.bubbleDensity)
+        setHollowSound(data.hollowSound)
+        setThickness(String(data.thickness))
+        setBrittleAreas(data.brittleAreas)
+        setThinAreas(data.thinAreas)
+      } else {
+        setColorType('blue')
+        setBubbleDensity(15)
+        setHollowSound('none')
+        setThickness('15')
+        setBrittleAreas([{ id: 'b1', x: 20, y: 30, width: 15, height: 10, label: '顶部左侧脆冰区', severity: 'high' }])
+        setThinAreas([{ id: 't1', x: 50, y: 60, width: 20, height: 12, label: '中部薄冰区', severity: 'medium' }])
+      }
+    }
+  }, [currentWaterfall?.id])
+
   const qualityLevel: IceQualityLevel = useMemo(() => {
     return calculateIceQualityLevel({
       colorType,

@@ -160,6 +160,24 @@
 }
 
 .riskSection {
+  .emptyHint {
+    background: $color-bg-card;
+    border-radius: $radius-md;
+    padding: $spacing-lg;
+    text-align: center;
+
+    .emptyHintIcon {
+      font-size: 64rpx;
+      display: block;
+      margin-bottom: $spacing-sm;
+    }
+
+    .emptyHintText {
+      font-size: $font-size-sm;
+      color: $color-text-secondary;
+    }
+  }
+
   .riskItem {
     background: $color-bg-card;
     border-radius: $radius-md;

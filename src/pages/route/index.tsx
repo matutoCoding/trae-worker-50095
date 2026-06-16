@@ -166,9 +166,7 @@ const RoutePage: React.FC = () => {
                             </Text>
                           </View>
                           <Text className={styles.riskDesc}>
-                            { { strong: '根部连接牢固', medium: '根部连接一般', weak: '根部连接较弱', detached: '根部已分离' }[risk.rootConnection]
-                            {risk.hangingIce ? ' · 有悬挂冰' : ''}
-                            {risk.noStopZone ? ' · ⚠️ 禁停区域' : ''}
+                            {`${{ strong: '根部连接牢固', medium: '根部连接一般', weak: '根部连接较弱', detached: '根部已分离' }[risk.rootConnection]}${risk.hangingIce ? ' · 有悬挂冰' : ''}${risk.noStopZone ? ' · ⚠️ 禁停区域' : ''}`}
                           </Text>
                         </View>
                       ))}

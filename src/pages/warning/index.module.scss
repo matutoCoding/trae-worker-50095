@@ -76,6 +76,24 @@
 .alertList {
   margin-bottom: $spacing-lg;
 
+  .emptyState {
+    background: $color-bg-card;
+    border-radius: $radius-md;
+    padding: $spacing-xl * 2 $spacing-lg;
+    text-align: center;
+
+    .emptyIcon {
+      font-size: 80rpx;
+      display: block;
+      margin-bottom: $spacing-md;
+    }
+
+    .emptyText {
+      font-size: $font-size-md;
+      color: $color-text-secondary;
+    }
+  }
+
   .alertItem {
     background: $color-bg-card;
     border-radius: $radius-md;
@@ -199,12 +217,25 @@
       display: flex;
       gap: $spacing-xs;
       flex-wrap: wrap;
+      margin-bottom: $spacing-sm;
 
       .levelTag {
         padding: 4rpx $spacing-sm;
         border-radius: $radius-xs;
         font-size: $font-size-xs;
         font-weight: $font-weight-semibold;
+      }
+    }
+
+    .catRoutes {
+      border-top: 1rpx solid $color-border-light;
+      padding-top: $spacing-sm;
+
+      .catRouteTag {
+        display: block;
+        font-size: $font-size-xs;
+        color: $color-text-secondary;
+        line-height: 2;
       }
     }
   }

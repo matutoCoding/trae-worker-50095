@@ -1,18 +1,50 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, useEffect } from 'react'
 import { View, Text, Button } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import classnames from 'classnames'
 import { useAppContext } from '@/store/AppContext'
 import SectionHeader from '@/components/SectionHeader'
-import { mockCategories, mockRoutes } from '@/data/mockData'
 import { checkCollapseRisk, getIceQualityColor } from '@/utils/calculations'
 import type { TemperatureAlert } from '@/types'
 import styles from './index.module.scss'
 
-const WarningPage: React.FC = () => {
-  const { alerts, acknowledgeAlert, currentWaterfall, getCurrentQuality } = useAppContext()
+const categories = [
+  {
+    id: 'cat-1',
+    name: '极寒稳定区',
+    temperatureRange: [-20, -10] as [number, number],
+    qualityLevels: ['A', 'B'] as const,
+    description: '气温极低，冰质坚硬稳定，适合各种难度线路攀爬'
+  },
+  {
+    id: 'cat-2',
+    name: '常规作业区',
+    temperatureRange: [-10, 0] as [number, number],
+    qualityLevels: ['B', 'C'] as const,
+    description: '温度适中，冰质稳定，需注意午后升温影响'
+  },
+  {
+    id: 'cat-3',
+    name: '清晨限定区',
+    temperatureRange: [0, 3] as [number, number],
+    qualityLevels: ['C'] as const,
+    description: '接近冰点，仅清晨冰质可靠，10点后建议撤离'
+  },
+  {
+    id: 'cat-4',
+    name: '高危禁攀区',
+    temperatureRange: [3, 20] as [number, number],
+    qualityLevels: ['D', 'E'] as const,
+    description: '温度过高，冰质不稳定，严禁任何攀爬活动'
+  }
+]
 
-  const unacknowledgedCount = alerts.filter(a => !a.acknowledged).length
+const WarningPage: React.FC = () => {
+  const { alerts, acknowledgeAlert, currentWaterfall, getCurrentQuality, routes, recalculateAlerts } = useAppContext()
+
+  const unacknowledgedCount = useMemo(() => 
+    alerts.filter(a => !a.acknowledged).length
+  , [alerts])
 
   const collapseRisk = useMemo(() => {
     if (!currentWaterfall) return null
@@ -23,7 +55,14 @@ const WarningPage: React.FC = () => {
       currentWaterfall.temperature72h,
       quality
     )
-  }, [currentWaterfall])
+  }, [currentWaterfall, getCurrentQuality])
+
+  useEffect(() => {
+    if (currentWaterfall) {
+      console.log('[WarningPage] Waterfall changed, recalculating alerts')
+      recalculateAlerts()
+    }
+  }, [currentWaterfall?.id, currentWaterfall?.temperature, currentWaterfall?.temperature24h, currentWaterfall?.temperature72h])
 
   const getAlertTypeInfo = (type: TemperatureAlert['type']) => {
     return {
@@ -38,7 +77,13 @@ const WarningPage: React.FC = () => {
   }
 
   const getRouteName = (id: string) => {
-    return mockRoutes.find(r => r.id === id)?.name || id
+    return routes.find(r => r.id === id)?.name || id
+  }
+
+  const getRoutesInCategory = (tempRange: [number, number]) => {
+    return routes.filter(r => 
+      r.temperatureRange[0] >= tempRange[0] && r.temperatureRange[1] <= tempRange[1]
+    )
   }
 
   const handleAcknowledge = (id: string) => {
@@ -122,79 +167,99 @@ const WarningPage: React.FC = () => {
 
         <SectionHeader title='预警信息' subtitle={`${alerts.length} 条预警记录`} />
         <View className={styles.alertList}>
-          {alerts.map(alert => {
-            const typeInfo = getAlertTypeInfo(alert.type)
-            return (
-              <View
-                key={alert.id}
-                className={classnames(
-                  styles.alertItem,
-                  styles[getSeverityClass(alert.severity)],
-                  alert.acknowledged && styles.acknowledged
-                )}
-              >
-                <View className={styles.alertTop}>
-                  <View className={styles.alertType}>
-                    <View className={styles.alertDot} style={{ backgroundColor: typeInfo.dot }} />
-                    <Text className={styles.alertTitle} style={{ color: typeInfo.dot }}>
-                      {typeInfo.label}
-                    </Text>
-                  </View>
-                  {!alert.acknowledged ? (
-                    <Button className={styles.ackBtn} onClick={() => handleAcknowledge(alert.id)}>
-                      确认
-                    </Button>
-                  ) : (
-                    <Text className={styles.ackBtn}>已确认</Text>
+          {alerts.length === 0 ? (
+            <View className={styles.emptyState}>
+              <Text className={styles.emptyIcon}>✅</Text>
+              <Text className={styles.emptyText}>当前无预警，冰况稳定</Text>
+            </View>
+          ) : (
+            alerts.map(alert => {
+              const typeInfo = getAlertTypeInfo(alert.type)
+              return (
+                <View
+                  key={alert.id}
+                  className={classnames(
+                    styles.alertItem,
+                    styles[getSeverityClass(alert.severity)],
+                    alert.acknowledged && styles.acknowledged
                   )}
-                </View>
-                <Text className={styles.alertMessage}>{alert.message}</Text>
-                <View className={styles.alertFooter}>
-                  <Text className={styles.alertMeta}>
-                    🕐 {alert.timestamp.slice(11, 16)} · 当前 {alert.temperatureNow}℃ · 升温 {alert.temperatureChange}℃
-                  </Text>
-                  <View className={styles.affectedRoutes}>
-                    {alert.affectedRoutes.slice(0, 2).map(rid => (
-                      <Text key={rid} className={styles.routeTag}>{getRouteName(rid)}</Text>
-                    ))}
-                    {alert.affectedRoutes.length > 2 && (
-                      <Text className={styles.routeTag}>+{alert.affectedRoutes.length - 2}</Text>
+                >
+                  <View className={styles.alertTop}>
+                    <View className={styles.alertType}>
+                      <View className={styles.alertDot} style={{ backgroundColor: typeInfo.dot }} />
+                      <Text className={styles.alertTitle} style={{ color: typeInfo.dot }}>
+                        {typeInfo.label}
+                      </Text>
+                    </View>
+                    {!alert.acknowledged ? (
+                      <Button className={styles.ackBtn} onClick={() => handleAcknowledge(alert.id)}>
+                        确认
+                      </Button>
+                    ) : (
+                      <Text className={styles.ackBtn}>已确认</Text>
                     )}
                   </View>
+                  <Text className={styles.alertMessage}>{alert.message}</Text>
+                  <View className={styles.alertFooter}>
+                    <Text className={styles.alertMeta}>
+                      🕐 {alert.timestamp.slice(11, 16)} · 当前 {alert.temperatureNow}℃ · 升温 {alert.temperatureChange}℃
+                    </Text>
+                    <View className={styles.affectedRoutes}>
+                      {alert.affectedRoutes.slice(0, 2).map(rid => (
+                        <Text key={rid} className={styles.routeTag}>{getRouteName(rid)}</Text>
+                      ))}
+                      {alert.affectedRoutes.length > 2 && (
+                        <Text className={styles.routeTag}>+{alert.affectedRoutes.length - 2}</Text>
+                      )}
+                    </View>
+                  </View>
                 </View>
+              )
+            })
+          )}
+        </View>
+
+        <SectionHeader title='温度分区' subtitle={`共 ${routes.length} 条线路入库`} />
+        <View className={styles.categorySection}>
+          {categories.map(cat => {
+            const catRoutes = getRoutesInCategory(cat.temperatureRange)
+            return (
+              <View key={cat.id} className={styles.categoryCard}>
+                <View className={styles.categoryHeader}>
+                  <Text className={styles.categoryName}>{cat.name}</Text>
+                  <Text className={styles.routeCount}>{catRoutes.length} 条线路</Text>
+                </View>
+                <Text className={styles.tempRange}>
+                  🌡️ 适用温度 {cat.temperatureRange[0]}℃ ~ {cat.temperatureRange[1]}℃
+                </Text>
+                <Text className={styles.categoryDesc}>{cat.description}</Text>
+                <View className={styles.qualityLevels}>
+                  {cat.qualityLevels.map(lvl => (
+                    <Text
+                      key={lvl}
+                      className={styles.levelTag}
+                      style={{
+                        backgroundColor: `${getIceQualityColor(lvl)}20`,
+                        color: getIceQualityColor(lvl)
+                      }}
+                    >
+                      {lvl}级冰质
+                    </Text>
+                  ))}
+                </View>
+                {catRoutes.length > 0 && (
+                  <View className={styles.catRoutes}>
+                    {catRoutes.slice(0, 2).map(r => (
+                      <Text key={r.id} className={styles.catRouteTag}>• {r.name}</Text>
+                    ))}
+                    {catRoutes.length > 2 && (
+                      <Text className={styles.catRouteTag}>+{catRoutes.length - 2}条更多</Text>
+                    )}
+                  </View>
+                )}
               </View>
             )
           })}
-        </View>
-
-        <SectionHeader title='温度分区' subtitle='按温度归类的稳定线路库' />
-        <View className={styles.categorySection}>
-          {mockCategories.map(cat => (
-            <View key={cat.id} className={styles.categoryCard}>
-              <View className={styles.categoryHeader}>
-                <Text className={styles.categoryName}>{cat.name}</Text>
-                <Text className={styles.routeCount}>{cat.routeIds.length} 条线路</Text>
-              </View>
-              <Text className={styles.tempRange}>
-                🌡️ 适用温度 {cat.temperatureRange[0]}℃ ~ {cat.temperatureRange[1]}℃
-              </Text>
-              <Text className={styles.categoryDesc}>{cat.description}</Text>
-              <View className={styles.qualityLevels}>
-                {cat.qualityLevels.map(lvl => (
-                  <Text
-                    key={lvl}
-                    className={styles.levelTag}
-                    style={{
-                      backgroundColor: `${getIceQualityColor(lvl)}20`,
-                      color: getIceQualityColor(lvl)
-                    }}
-                  >
-                    {lvl}级冰质
-                  </Text>
-                ))}
-              </View>
-            </View>
-          ))}
         </View>
 
         <SectionHeader title='安全操作指南' />

@@ -11,7 +11,7 @@ import type { WaterfallData } from '@/types'
 import styles from './index.module.scss'
 
 const WaterfallPage: React.FC = () => {
-  const { waterfalls, currentWaterfall, setCurrentWaterfall, addWaterfall, getCurrentQuality } = useAppContext()
+  const { waterfalls, currentWaterfall, setCurrentWaterfall, addWaterfall, getCurrentQuality, upsertRouteFromWaterfall } = useAppContext()
 
   const [showForm, setShowForm] = useState(false)
   const [formData, setFormData] = useState({
@@ -56,6 +56,9 @@ const WaterfallPage: React.FC = () => {
       sunlightHours: 5,
       aspect: '北'
     })
+    setTimeout(() => {
+      upsertRouteFromWaterfall(newWaterfall.id)
+    }, 100)
     Taro.showToast({ title: '冰瀑录入成功', icon: 'success' })
     console.log('[Waterfall] New waterfall created:', newWaterfall.id)
   }

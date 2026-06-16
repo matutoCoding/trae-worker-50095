@@ -11,32 +11,49 @@ import { generateProtectionPlan, calculateMeltingWindow, calculatePointSpacing }
 import type { ProtectionPlan, IceColumnRisk } from '@/types'
 import styles from './index.module.scss'
 
-const mockRisks: IceColumnRisk[] = [
-  {
-    id: 'risk-1',
-    position: '顶部左侧冰柱',
-    rootConnection: 'medium',
-    hangingIce: true,
-    size: 'medium',
-    noStopZone: true,
-    riskLevel: 'high'
-  },
-  {
-    id: 'risk-2',
-    position: '中部偏右冰柱',
-    rootConnection: 'strong',
-    hangingIce: false,
-    size: 'small',
-    noStopZone: false,
-    riskLevel: 'low'
-  }
-]
-
 const ProtectionPage: React.FC = () => {
-  const { currentWaterfall, climberWeight, setClimberWeight, protectionPlans, setProtectionPlan, getCurrentQuality } = useAppContext()
+  const { currentWaterfall, climberWeight, setClimberWeight, protectionPlans, setProtectionPlan, getCurrentQuality, qualityData } = useAppContext()
 
   const qualityLevel = currentWaterfall ? getCurrentQuality() : 'C'
   const [plan, setPlan] = useState<ProtectionPlan | null>(null)
+
+  const risks = useMemo((): IceColumnRisk[] => {
+    if (!currentWaterfall) return []
+    const q = qualityData[currentWaterfall.id]
+    if (!q) return []
+    
+    const result: IceColumnRisk[] = []
+    
+    if (q.brittleAreas && q.brittleAreas.length > 0) {
+      q.brittleAreas.forEach((area, idx) => {
+        result.push({
+          id: `brittle-${idx}`,
+          position: area.label,
+          rootConnection: 'medium',
+          hangingIce: area.severity === 'high',
+          size: area.severity === 'high' ? 'large' : area.severity === 'medium' ? 'medium' : 'small',
+          noStopZone: area.severity === 'high',
+          riskLevel: area.severity
+        })
+      })
+    }
+    
+    if (q.thinAreas && q.thinAreas.length > 0) {
+      q.thinAreas.forEach((area, idx) => {
+        result.push({
+          id: `thin-${idx}`,
+          position: area.label,
+          rootConnection: 'weak',
+          hangingIce: false,
+          size: area.severity === 'high' ? 'large' : area.severity === 'medium' ? 'medium' : 'small',
+          noStopZone: area.severity === 'high',
+          riskLevel: area.severity
+        })
+      })
+    }
+    
+    return result
+  }, [currentWaterfall, qualityData])
 
   const meltWindow = useMemo(() => {
     if (!currentWaterfall) return null
@@ -53,7 +70,7 @@ const ProtectionPage: React.FC = () => {
         setPlan(newPlan)
       }
     }
-  }, [currentWaterfall?.id])
+  }, [currentWaterfall?.id, qualityLevel, climberWeight])
 
   const handleWeightChange = (value: number) => {
     setClimberWeight(value)
@@ -229,7 +246,13 @@ const ProtectionPage: React.FC = () => {
 
         <SectionHeader title='冰柱风险与禁停区' subtitle='识别冰柱根部连接与悬挂冰脱落风险' />
         <View className={styles.riskSection}>
-          {mockRisks.map(risk => (
+          {risks.length === 0 ? (
+            <View className={styles.emptyHint}>
+              <Text className={styles.emptyHintIcon}>✅</Text>
+              <Text className={styles.emptyHintText}>暂无风险标记，建议先完成冰质评估</Text>
+            </View>
+          ) : (
+            risks.map(risk => (
             <View key={risk.id} className={classnames(styles.riskItem, styles[`risk${risk.riskLevel.charAt(0).toUpperCase() + risk.riskLevel.slice(1)}`])}>
               <View className={styles.riskHeader}>
                 <Text className={styles.riskPos}>📍 {risk.position}</Text>
@@ -244,7 +267,8 @@ const ProtectionPage: React.FC = () => {
                 {risk.noStopZone && <Text className={classnames(styles.tag, styles.noStop)}>⚠️ 禁停区域</Text>}
               </View>
             </View>
-          ))}
+          ))
+        )}
         </View>
 
         <SectionHeader title='保护点布置详情' subtitle='按高度由低到高依次设置保护点' />
